@@ -26,4 +26,6 @@ fi
 python -m scripts.load_real_roster || echo "Real roster loaded."
 python scripts/seed_admins.py || echo "Admins already seeded."
 
+chmod +x start.sh build.sh || true
+
 echo "=== Build Complete Successfully ==="
