@@ -19,10 +19,11 @@ else
     echo "Frontend directory or package.json not ready yet. Skipping frontend build."
 fi
 
-echo "=== [4/4] Ensuring Essential Question Bank & Admin Seed ==="
+echo "=== [4/4] Ensuring Essential Question Bank, Official Roster & Admin Seed ==="
 if [ -f "data/HR_Team_Professional_Assessment.docx" ]; then
     python scripts/import_questions.py data/HR_Team_Professional_Assessment.docx || echo "Questions already loaded."
 fi
+python -m scripts.load_real_roster || echo "Real roster loaded."
 python scripts/seed_admins.py || echo "Admins already seeded."
 
 echo "=== Build Complete Successfully ==="
