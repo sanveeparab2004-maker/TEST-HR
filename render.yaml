@@ -1,0 +1,53 @@
+# Render Blueprint Specification for HR Assessment Portal
+# Target: Free Web Service (Single Instance for In-Process WebRTC Signalling)
+
+services:
+  - type: web
+    name: hr-assessment-portal
+    env: python
+    region: oregon
+    plan: free
+    numInstances: 1 # Strictly 1 instance: in-memory WebRTC WebSocket signalling state
+    buildCommand: "./build.sh"
+    startCommand: "uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: NODE_VERSION
+        value: 20.11.0
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        sync: false # Set in Render Dashboard: Neon Postgres connection string with ?sslmode=require
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        sync: false # Set to https://<your-render-subdomain>.onrender.com
+      - key: DEFAULT_MONITOR_CODE
+        sync: false
+      - key: DEFAULT_MONITOR_NAME
+        value: Chief Exam Proctor
+      - key: DEFAULT_MONITOR_PIN
+        sync: false
+      - key: DEFAULT_ADMIN_CODE
+        sync: false
+      - key: DEFAULT_ADMIN_NAME
+        value: HR Operations Lead
+      - key: DEFAULT_ADMIN_PIN
+        sync: false
+      - key: EXAM_DURATION_MINUTES
+        value: "60"
+      - key: STUN_URLS
+        value: "stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302"
+      - key: TURN_URLS
+        sync: false
+      - key: TURN_USERNAME
+        sync: false
+      - key: TURN_CREDENTIAL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: CLAUDE_MODEL
+        value: "claude-3-5-sonnet-20241022"

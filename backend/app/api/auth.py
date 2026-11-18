@@ -1,0 +1,232 @@
+import random
+from datetime import datetime, timezone, timedelta
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
+from sqlalchemy.orm import Session
+from backend.app.core.config import settings
+from backend.app.core.database import get_db
+from backend.app.core.security import (
+    verify_pin, hash_device_token, generate_device_token, create_access_token
+)
+from backend.app.models.models import Roster, Assessment, Attempt, Option, Question, AuditLog, Event
+from backend.app.schemas.auth import LookupRequest, LookupResponse, LoginRequest, LoginResponse
+from backend.app.api.deps import check_rate_limit, record_failed_attempt, reset_failed_attempts
+
+router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+GENERIC_AUTH_ERROR = "Details not found. Contact HR."
+
+
+@router.post("/lookup", response_model=LookupResponse)
+def lookup_employee(req: LookupRequest, db: Session = Depends(get_db)):
+    """Check if the provided employee code requires a PIN (MONITOR or ADMIN)."""
+    code = req.employee_code.strip().upper()
+    entry = db.query(Roster).filter_by(employee_code=code, is_active=True).first()
+    if entry and entry.role in ("MONITOR", "ADMIN"):
+        return LookupResponse(requires_pin=True)
+    return LookupResponse(requires_pin=False)
+
+
+@router.post("/login", response_model=LoginResponse)
+def login(
+    req: LoginRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    ip = request.client.host if request.client else "unknown"
+    rate_key = f"{ip}:{req.employee_code.strip().upper()}"
+
+    if not check_rate_limit(rate_key):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed login attempts. Please wait a few minutes before retrying."
+        )
+
+    code = req.employee_code.strip().upper()
+    entered_name = req.full_name.strip()
+
+    # Look up candidate in roster
+    entry = db.query(Roster).filter_by(employee_code=code, is_active=True).first()
+    if not entry:
+        record_failed_attempt(rate_key)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=GENERIC_AUTH_ERROR)
+
+    # Name validation (case-insensitive, whitespace normalized)
+    if entry.full_name.strip().lower() != entered_name.lower():
+        record_failed_attempt(rate_key)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=GENERIC_AUTH_ERROR)
+
+    # Role validation and PIN check for MONITOR/ADMIN
+    if entry.role in ("MONITOR", "ADMIN"):
+        if not req.pin or not verify_pin(req.pin.strip(), entry.pin_hash or ""):
+            record_failed_attempt(rate_key)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=GENERIC_AUTH_ERROR)
+
+        reset_failed_attempts(rate_key)
+        
+        # Log successful staff login
+        db.add(AuditLog(
+            actor=code,
+            action=f"{entry.role}_LOGIN",
+            entity="session",
+            detail={"ip": ip, "role": entry.role}
+        ))
+        db.commit()
+
+        token = create_access_token({
+            "sub": code,
+            "role": entry.role,
+            "full_name": entry.full_name
+        })
+
+        response.set_cookie(
+            key="access_token",
+            value=token,
+            httponly=True,
+            secure=(settings.ENVIRONMENT == "production"),
+            samesite="lax",
+            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        )
+
+        return LoginResponse(
+            access_token=token,
+            role=entry.role,
+            employee_code=code,
+            full_name=entry.full_name,
+            device_token=None,
+            attempt_id=None
+        )
+
+    # --- CANDIDATE FLOW ---
+    reset_failed_attempts(rate_key)
+
+    # Get active assessment
+    assessment = db.query(Assessment).filter_by(status="OPEN").first()
+    if not assessment:
+        assessment = db.query(Assessment).order_by(Assessment.id.desc()).first()
+    if not assessment:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active assessment found. Contact HR.")
+
+    now = datetime.now(timezone.utc)
+    attempt = db.query(Attempt).filter_by(assessment_id=assessment.id, employee_code=code).first()
+
+    device_token_to_return = None
+
+    if attempt:
+        # Check if already submitted
+        if attempt.status in ("SUBMITTED", "AUTO_SUBMITTED", "VOID"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your assessment has already been submitted."
+            )
+
+        # Single-device check: compare hashed device token
+        if attempt.device_token_hash == "RELEASED_BY_ADMIN":
+            # Admin released device lock: issue new device token to this new machine
+            raw_device_token = generate_device_token()
+            attempt.device_token_hash = hash_device_token(raw_device_token)
+            attempt.ip = ip
+            if req.device_info:
+                attempt.device_info = req.device_info
+            device_token_to_return = raw_device_token
+            db.add(AuditLog(
+                actor=code,
+                action="RESUME_ON_NEW_DEVICE",
+                entity="attempt",
+                detail={"attempt_id": attempt.id, "ip": ip}
+            ))
+            db.commit()
+        elif not req.device_token or hash_device_token(req.device_token) != attempt.device_token_hash:
+            # Record unauthorized device attempt
+            db.add(Event(
+                attempt_id=attempt.id,
+                kind="DEVICE_LOCK_REJECTION",
+                detail={"ip": ip, "device_info": req.device_info}
+            ))
+            db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This employee code is already active on another device."
+            )
+        else:
+            # Resuming on same device with valid token
+            device_token_to_return = req.device_token
+            attempt.ip = ip
+            if req.device_info:
+                attempt.device_info = req.device_info
+            db.commit()
+    else:
+        # First-time login: create attempt and issue device token
+        raw_device_token = generate_device_token()
+        device_token_hash = hash_device_token(raw_device_token)
+        device_token_to_return = raw_device_token
+
+        # Order questions strictly by source_number 1 to 50 line-wise
+        questions = db.query(Question).filter_by(assessment_id=assessment.id).order_by(Question.source_number).all()
+        ordered_q_ids = [q.id for q in questions]
+
+        # Options in original document order A, B, C, D
+        option_order = {}
+        for q in questions:
+            opts = db.query(Option).filter_by(question_id=q.id).order_by(Option.label).all()
+            option_order[str(q.id)] = [o.id for o in opts]
+
+        # Strict 60-minute duration backed by DB
+        deadline_at = now + timedelta(minutes=assessment.duration_minutes)
+
+        attempt = Attempt(
+            assessment_id=assessment.id,
+            employee_code=code,
+            entered_name=entered_name,
+            device_token_hash=device_token_hash,
+            device_info=req.device_info,
+            ip=ip,
+            status="IN_PROGRESS",
+            started_at=now,
+            deadline_at=deadline_at,
+            question_order=ordered_q_ids,
+            option_order=option_order,
+            warning_count=0,
+            violation_count=0
+        )
+        db.add(attempt)
+        db.add(AuditLog(
+            actor=code,
+            action="ATTEMPT_CREATED",
+            entity="attempt",
+            detail={"assessment_id": assessment.id, "deadline_at": deadline_at.isoformat()}
+        ))
+        db.commit()
+        db.refresh(attempt)
+
+    token = create_access_token({
+        "sub": code,
+        "role": "CANDIDATE",
+        "full_name": entry.full_name,
+        "attempt_id": attempt.id,
+        "device_token_hash": attempt.device_token_hash
+    })
+
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=(settings.ENVIRONMENT == "production"),
+        samesite="lax",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
+
+    return LoginResponse(
+        access_token=token,
+        role="CANDIDATE",
+        employee_code=code,
+        full_name=entry.full_name,
+        device_token=device_token_to_return,
+        attempt_id=attempt.id
+    )
+
+
+@router.post("/logout")
+def logout(response: Response, current_user = Depends(create_access_token)):
+    response.delete_cookie(key="access_token")
+    return {"message": "Logged out successfully"}
