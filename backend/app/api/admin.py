@@ -405,3 +405,60 @@ def export_backup(
         media_type="application/json",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
+
+
+@router.post("/candidate/{employee_code}/reset")
+def reset_candidate_attempt(
+    employee_code: str,
+    current_user: SessionUser = Depends(require_role("ADMIN")),
+    db: Session = Depends(get_db)
+):
+    code = employee_code.strip()
+    attempts = db.query(Attempt).filter(
+        (Attempt.employee_code == code) | (Attempt.entered_name.ilike(f"%{code}%"))
+    ).all()
+
+    deleted_count = len(attempts)
+    for att in attempts:
+        db.query(Answer).filter_by(attempt_id=att.id).delete(synchronize_session=False)
+        db.query(Snapshot).filter_by(attempt_id=att.id).delete(synchronize_session=False)
+        db.query(Violation).filter_by(attempt_id=att.id).delete(synchronize_session=False)
+        db.delete(att)
+
+    db.add(AuditLog(
+        actor=current_user.employee_code,
+        action="RESET_CANDIDATE_ATTEMPT",
+        entity="attempt",
+        detail={"employee_code": code, "deleted_attempts": deleted_count}
+    ))
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": f"All previous attempt and device lock data for {code} has been completely removed. Candidate can start fresh from scratch."
+    }
+
+
+@router.post("/reset-all-attempts")
+def reset_all_attempts(
+    current_user: SessionUser = Depends(require_role("ADMIN")),
+    db: Session = Depends(get_db)
+):
+    db.query(Answer).delete(synchronize_session=False)
+    db.query(Snapshot).delete(synchronize_session=False)
+    db.query(Violation).delete(synchronize_session=False)
+    count = db.query(Attempt).delete(synchronize_session=False)
+
+    db.add(AuditLog(
+        actor=current_user.employee_code,
+        action="RESET_ALL_ATTEMPTS",
+        entity="attempt",
+        detail={"purged_attempts": count}
+    ))
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": f"Successfully reset all {count} candidate attempts. All candidates can now start fresh."
+    }
+

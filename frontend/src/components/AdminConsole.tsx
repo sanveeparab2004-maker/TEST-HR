@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Users, BarChart3, BookOpen, Settings, Download, Search,
   CheckCircle2, XCircle, AlertTriangle, FileSpreadsheet, FileText,
-  Sparkles, RefreshCw, KeyRound, Trash2, ArrowUpDown, ChevronRight, X, ExternalLink
+  Sparkles, RefreshCw, KeyRound, Trash2, ArrowUpDown, ChevronRight, X, ExternalLink, RotateCcw
 } from "lucide-react";
 import { UserSession } from "../types";
 
@@ -166,6 +166,50 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ user, onLogout }) =>
       setPurgeMessage(data.message || "Purge executed.");
     } catch {
       setPurgeMessage("Error during purge.");
+    }
+  };
+
+  const handleResetCandidate = async (employeeCode: string, fullName: string) => {
+    if (!window.confirm(`Are you sure you want to reset all attempt and device lock data for ${fullName} (${employeeCode})? This will allow them to start fresh from question 1.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/admin/candidate/${employeeCode}/reset`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("assess_token") || ""}`,
+        },
+      });
+      if (res.ok) {
+        alert(`Candidate ${fullName} has been reset. They can now log in fresh.`);
+        fetchDashboardData();
+      } else {
+        alert("Failed to reset candidate attempt.");
+      }
+    } catch {
+      alert("Network error resetting candidate.");
+    }
+  };
+
+  const handleResetAllAttempts = async () => {
+    if (!window.confirm("CAUTION: Are you sure you want to wipe ALL test attempts? This resets all candidates back to unattempted state.")) {
+      return;
+    }
+    try {
+      const res = await fetch("/api/admin/reset-all-attempts", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("assess_token") || ""}`,
+        },
+      });
+      if (res.ok) {
+        alert("All candidate attempts have been reset successfully.");
+        fetchDashboardData();
+      } else {
+        alert("Failed to reset attempts.");
+      }
+    } catch {
+      alert("Network error resetting attempts.");
     }
   };
 
@@ -379,6 +423,15 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ user, onLogout }) =>
                   >
                     <RefreshCw className="w-4 h-4" />
                   </button>
+
+                  <button
+                    onClick={handleResetAllAttempts}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors shadow-sm ml-auto"
+                    title="Wipe all attempts to start completely fresh"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset All Candidates</span>
+                  </button>
                 </div>
               </div>
 
@@ -452,6 +505,13 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ user, onLogout }) =>
                                 >
                                   PDF
                                 </a>
+                                <button
+                                  onClick={() => handleResetCandidate(r.employee_code, r.full_name)}
+                                  className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors border border-rose-200"
+                                  title="Wipe attempt and start fresh"
+                                >
+                                  Reset
+                                </button>
                               </>
                             ) : (
                               <span className="text-slate-400 text-xs italic">Unattempted</span>
