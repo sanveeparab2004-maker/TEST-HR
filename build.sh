@@ -25,6 +25,7 @@ if [ -f "data/HR_Team_Professional_Assessment.docx" ]; then
 fi
 python -m scripts.load_real_roster || echo "Real roster loaded."
 python scripts/seed_admins.py || echo "Admins already seeded."
+python -m scripts.seed_department_assessments || echo "Department assessments seeded."
 
 chmod +x start.sh build.sh || true
 

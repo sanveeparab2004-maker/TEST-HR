@@ -35,7 +35,8 @@ export const api = {
   async login(
     employeeCode: string,
     fullName: string,
-    pin?: string
+    pin?: string,
+    department: string = "HR"
   ): Promise<UserSession> {
     const deviceToken = getStoredDeviceToken();
     const deviceInfo = {
@@ -52,6 +53,7 @@ export const api = {
         employee_code: employeeCode,
         full_name: fullName,
         pin: pin || undefined,
+        department: department,
         device_token: deviceToken || undefined,
         device_info: deviceInfo,
       }),

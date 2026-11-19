@@ -100,12 +100,42 @@ def login(
     # --- CANDIDATE FLOW ---
     reset_failed_attempts(rate_key)
 
-    # Get active assessment
-    assessment = db.query(Assessment).filter_by(status="OPEN").first()
+    # Department-aware assessment matching (HR, CLAIM, TENDER, ADMIN)
+    target_dept = (req.department or "HR").strip().upper()
+    
+    # Department validation check against roster
+    cand_dept = (entry.department or "").upper()
+    if target_dept in ("CLAIM", "TENDER", "ADMIN") and "HR" in cand_dept and target_dept not in cand_dept:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{entry.full_name} ({code}) is enrolled under the HR Department. Please select the HR section to take your assessment."
+        )
+
+    # Find matching assessment
+    assessment = None
+    all_assessments = db.query(Assessment).all()
+    for a in all_assessments:
+        dept_setting = (a.settings or {}).get("department", "").upper()
+        if dept_setting == target_dept or target_dept in a.title.upper():
+            assessment = a
+            break
+
+    if not assessment:
+        assessment = db.query(Assessment).filter_by(status="OPEN").first()
+
     if not assessment:
         assessment = db.query(Assessment).order_by(Assessment.id.desc()).first()
+
     if not assessment:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active assessment found. Contact HR.")
+
+    # Check if the assessment questionnaire has been loaded
+    q_count = db.query(Question).filter_by(assessment_id=assessment.id).count()
+    if assessment.status != "OPEN" and q_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"The {target_dept} department assessment questionnaire is currently being finalized. Roster and questions will be active shortly."
+        )
 
     now = datetime.now(timezone.utc)
     attempt = db.query(Attempt).filter_by(assessment_id=assessment.id, employee_code=code).first()
