@@ -1,6 +1,6 @@
 import openpyxl
 from backend.app.core.database import SessionLocal, Base, engine
-from backend.app.models.models import Roster, Attempt, Answer, Violation, Snapshot, Event, AuditLog
+from backend.app.models.models import Roster, Attempt, Answer, Violation, Snapshot, Event, AuditLog, Restart, PendingSheetWrite
 from backend.app.core.security import get_pin_hash
 
 
@@ -8,6 +8,8 @@ def load_real_roster_from_excel(excel_path: str = "data/hr_list.xlsx"):
     session = SessionLocal()
     try:
         print("[1/4] Purging dummy attempts, answers, violations, snapshots, and events...")
+        session.query(Restart).delete(synchronize_session=False)
+        session.query(PendingSheetWrite).delete(synchronize_session=False)
         session.query(Answer).delete(synchronize_session=False)
         session.query(Violation).delete(synchronize_session=False)
         session.query(Snapshot).delete(synchronize_session=False)
