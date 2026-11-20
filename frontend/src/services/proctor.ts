@@ -3,6 +3,7 @@ import { api } from "./api";
 export interface ProctorCallbacks {
   onWarning: (tier: string, message: string, kind: string, remainingWarnings: number) => void;
   onPostFinalNoted: (kind: string, message: string) => void;
+  onRestart?: (message: string, kind: string) => void;
   onCameraOff: (isOff: boolean) => void;
   onProctorMessage?: (message: string, sender: string) => void;
 }
@@ -255,11 +256,18 @@ export class ProctorEngine {
       if (!res.ok) return;
       const data = await res.json();
 
-      if (["WARNING_1", "WARNING_2", "WARNING_3", "FINAL_WARNING"].includes(data.warning_tier)) {
-        const remaining = Math.max(0, 3 - data.warning_count);
+      if (data.action === "RESTART" || data.warning_tier === "RESTART") {
+        if (this.callbacks.onRestart) {
+          this.callbacks.onRestart(data.message || "Test restarted due to exceeding 5 warnings.", kind);
+        } else {
+          this.callbacks.onWarning("RESTART", data.message, kind, 0);
+        }
+        return;
+      }
+
+      if (["WARNING_1", "WARNING_2", "WARNING_3", "FINAL_WARNING", "POST_FINAL_NOTED"].includes(data.warning_tier)) {
+        const remaining = Math.max(0, 5 - (data.warning_count || 1));
         this.callbacks.onWarning(data.warning_tier, data.message, kind, remaining);
-      } else if (data.warning_tier === "POST_FINAL_NOTED") {
-        this.callbacks.onPostFinalNoted(kind, data.message);
       }
     } catch {}
   }

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { AlertTriangle, ShieldAlert, Check } from "lucide-react";
+import { AlertTriangle, ShieldAlert, RotateCcw, Check } from "lucide-react";
 
 interface WarningModalProps {
   isOpen: boolean;
-  tier: string; // "WARNING_1" | "WARNING_2" | "WARNING_3" | "FINAL_WARNING"
+  tier: string; // "WARNING_1" | "WARNING_2" | "WARNING_3" | "FINAL_WARNING" | "RESTART"
   kind: string;
   message: string;
   remainingWarnings: number;
+  isRestart?: boolean;
   onAcknowledge: () => void;
 }
 
@@ -16,6 +17,7 @@ export const WarningModal: React.FC<WarningModalProps> = ({
   kind,
   message,
   remainingWarnings,
+  isRestart = false,
   onAcknowledge,
 }) => {
   const [countdown, setCountdown] = useState(3);
@@ -41,7 +43,8 @@ export const WarningModal: React.FC<WarningModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isFinalWarning = tier === "FINAL_WARNING";
+  const restartMode = isRestart || tier === "RESTART";
+  const warningNum = Math.min(5, Math.max(1, 6 - remainingWarnings));
 
   // Friendly description of detected violation kind
   const getKindDescription = (k: string) => {
@@ -53,11 +56,16 @@ export const WarningModal: React.FC<WarningModalProps> = ({
       case "FULLSCREEN_EXIT":
         return "Exited mandatory full-screen mode";
       case "NO_FACE":
-        return "No face visible in camera frame";
+      case "FACE_MISSING":
+        return "No face visible in camera frame for > 3s";
+      case "MULTIPLE_FACES":
+        return "Multiple faces detected in camera frame";
+      case "FACE_MISMATCH":
+        return "Face does not match reference descriptor";
       case "LOOKING_AWAY":
         return "Face turned significantly away from screen";
       case "CAMERA_OFF":
-        return "Webcam feed interrupted or turned off";
+        return "Webcam feed interrupted, covered, or turned off";
       case "COPY_PASTE":
         return "Clipboard copy/paste attempt blocked";
       case "DEV_TOOLS_KEY":
@@ -68,21 +76,31 @@ export const WarningModal: React.FC<WarningModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 select-none">
+    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 select-none">
       <div
         className={`max-w-lg w-full bg-white rounded-3xl shadow-2xl border overflow-hidden animate-fadeIn ${
-          isFinalWarning ? "border-rose-400 ring-4 ring-rose-500/20" : "border-amber-300 ring-4 ring-amber-500/20"
+          restartMode
+            ? "border-rose-600 ring-4 ring-rose-600/30"
+            : warningNum >= 4
+            ? "border-rose-400 ring-4 ring-rose-500/20"
+            : "border-amber-400 ring-4 ring-amber-500/20"
         }`}
       >
         {/* Modal Banner */}
         <div
           className={`p-6 text-white ${
-            isFinalWarning ? "bg-rose-700" : "bg-amber-600"
+            restartMode
+              ? "bg-rose-800"
+              : warningNum >= 4
+              ? "bg-rose-700"
+              : "bg-amber-600"
           }`}
         >
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center shrink-0">
-              {isFinalWarning ? (
+              {restartMode ? (
+                <RotateCcw className="w-7 h-7 text-white" />
+              ) : warningNum >= 4 ? (
                 <ShieldAlert className="w-7 h-7 text-white" />
               ) : (
                 <AlertTriangle className="w-7 h-7 text-white" />
@@ -90,10 +108,14 @@ export const WarningModal: React.FC<WarningModalProps> = ({
             </div>
             <div>
               <p className="text-xs uppercase tracking-wider font-semibold text-white/80">
-                {isFinalWarning ? "CRITICAL PROCTORING NOTICE" : "PROCTORING SECURITY ALERT"}
+                {restartMode
+                  ? "EXAM SECURITY ENFORCEMENT"
+                  : "PROCTORING SECURITY ALERT"}
               </p>
               <h2 className="text-xl font-bold tracking-tight">
-                {isFinalWarning ? "FINAL WARNING" : `Warning (${4 - remainingWarnings}/3)`}
+                {restartMode
+                  ? "TEST RESTARTED"
+                  : `WARNING ${warningNum} of 5`}
               </h2>
             </div>
           </div>
@@ -110,22 +132,18 @@ export const WarningModal: React.FC<WarningModalProps> = ({
             </p>
           </div>
 
-          <p className="text-xs text-slate-600 leading-relaxed">
-            {isFinalWarning ? (
-              <span className="font-medium text-slate-800">
-                You have used all 3 initial warnings. This is your <strong>Final Warning</strong>. Your activity is being monitored and continuously reviewed by HR. You may continue the test, but all further incidents will be recorded on your proctoring log for post-exam committee review.
-              </span>
+          <div className="text-xs text-slate-700 leading-relaxed space-y-2">
+            {restartMode ? (
+              <p className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 font-medium">
+                You have exceeded the maximum of 5 allowed warnings. Your exam has been <strong>restarted</strong>: the timer has reset to a fresh 60:00, previous answers have been cleared, and your questions have been re-shuffled to a new order.
+              </p>
             ) : (
-              <span>
-                {message} Please maintain active window focus, keep your camera connected, and face the screen.
-              </span>
+              <p>
+                <strong>WARNING {warningNum} of 5:</strong> Tab switching is not allowed. If you switch tabs or violate proctoring rules more than 5 times, your test will be automatically restarted.
+              </p>
             )}
-          </p>
-
-          <div className="p-3.5 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-600 space-y-1">
-            <p className="font-semibold text-slate-800">Important Policy Reminder:</p>
-            <p className="text-[11px] leading-relaxed">
-              The automated system will not kick you out of the exam. The assessment clock continues running. Any penalty is a later human decision reviewed by HR.
+            <p className="text-slate-500">
+              Please maintain fullscreen focus, stay seated directly in front of the camera, and do not switch windows or use keyboard shortcuts.
             </p>
           </div>
         </div>
@@ -135,16 +153,15 @@ export const WarningModal: React.FC<WarningModalProps> = ({
           <span className="text-xs text-slate-500">
             {countdown > 0 ? (
               <span className="font-mono font-medium text-amber-700">
-                Button enabled in {countdown}s...
+                Modal locked for {countdown}s...
               </span>
             ) : (
-              <span className="text-emerald-700 font-medium">Ready to acknowledge</span>
+              <span className="text-emerald-700 font-medium">Acknowledged</span>
             )}
           </span>
 
           <button
             onClick={() => {
-              // Re-enter fullscreen when acknowledging
               try {
                 if (document.documentElement.requestFullscreen) {
                   document.documentElement.requestFullscreen().catch(() => {});
@@ -156,13 +173,22 @@ export const WarningModal: React.FC<WarningModalProps> = ({
             className={`px-6 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-2 cursor-pointer ${
               countdown > 0
                 ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                : isFinalWarning
-                ? "bg-rose-600 hover:bg-rose-700 text-white"
+                : restartMode
+                ? "bg-rose-700 hover:bg-rose-800 text-white"
                 : "bg-brand-600 hover:bg-brand-700 text-white"
             }`}
           >
-            <Check className="w-4 h-4 stroke-[2.5]" />
-            <span>I Understand, Resume Test</span>
+            {restartMode ? (
+              <>
+                <RotateCcw className="w-4 h-4 stroke-[2.5]" />
+                <span>Resume Restarted Test</span>
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4 stroke-[2.5]" />
+                <span>I Understand, Resume Test</span>
+              </>
+            )}
           </button>
         </div>
       </div>

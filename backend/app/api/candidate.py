@@ -216,7 +216,34 @@ def get_status(
 
     remaining = max(0, int((deadline - now).total_seconds())) if attempt.status == "IN_PROGRESS" else 0
 
-    show_score = attempt.assessment.settings.get("show_score_on_submission", False) if attempt.assessment else False
+    is_submitted = attempt.status in ("SUBMITTED", "AUTO_SUBMITTED")
+    show_score = is_submitted
+
+    result_str = None
+    corr_cnt = None
+    wrg_cnt = None
+    unans_cnt = None
+    time_fmt = None
+
+    if is_submitted and attempt.assessment_id:
+        result_str = "PASS" if (attempt.score or 0) >= settings.PASS_MARKS else "FAIL"
+        if attempt.started_at and attempt.submitted_at:
+            s_at = attempt.started_at.replace(tzinfo=timezone.utc) if attempt.started_at.tzinfo is None else attempt.started_at
+            sub_at = attempt.submitted_at.replace(tzinfo=timezone.utc) if attempt.submitted_at.tzinfo is None else attempt.submitted_at
+            total_sec = max(0, int((sub_at - s_at).total_seconds()))
+            mm = total_sec // 60
+            ss = total_sec % 60
+            time_fmt = f"{mm:02d}:{ss:02d}"
+
+        all_q = db.query(Question).filter_by(assessment_id=attempt.assessment_id).all()
+        all_ans = db.query(Answer).filter_by(attempt_id=attempt.id).all()
+        all_opts = db.query(Option).filter(Option.question_id.in_([q.id for q in all_q])).all()
+        correct_opts = {o.question_id: o.id for o in all_opts if o.is_correct}
+        ans_by_q = {a.question_id: a.option_id for a in all_ans}
+
+        corr_cnt = sum(1 for q in all_q if ans_by_q.get(q.id) and ans_by_q.get(q.id) == correct_opts.get(q.id))
+        unans_cnt = sum(1 for q in all_q if not ans_by_q.get(q.id))
+        wrg_cnt = len(all_q) - corr_cnt - unans_cnt
 
     return CandidateStatusResponse(
         employee_code=attempt.employee_code,
@@ -230,7 +257,12 @@ def get_status(
         show_score=show_score,
         score=attempt.score if show_score else None,
         percentage=attempt.percentage if show_score else None,
-        band=attempt.band if show_score else None
+        band=attempt.band if show_score else None,
+        result=result_str,
+        correct_count=corr_cnt,
+        wrong_count=wrg_cnt,
+        unanswered_count=unans_cnt,
+        time_taken_formatted=time_fmt
     )
 
 
@@ -476,7 +508,19 @@ def submit_exam(
     db.commit()
     sync_submission_to_google_sheet(attempt, db)
 
-    show_score = assessment.settings.get("show_score_on_submission", False)
+    result_str = "PASS" if (attempt.score or 0) >= settings.PASS_MARKS else "FAIL"
+    corr_cnt = sum(1 for q in questions if ans_map.get(q.id) and ans_map.get(q.id) == q_key_map.get(q.id, {}).get("correct_option_id"))
+    unans_cnt = sum(1 for q in questions if not ans_map.get(q.id))
+    wrg_cnt = len(questions) - corr_cnt - unans_cnt
+
+    time_fmt = None
+    if attempt.started_at and attempt.submitted_at:
+        s_at = attempt.started_at.replace(tzinfo=timezone.utc) if attempt.started_at.tzinfo is None else attempt.started_at
+        sub_at = attempt.submitted_at.replace(tzinfo=timezone.utc) if attempt.submitted_at.tzinfo is None else attempt.submitted_at
+        total_sec = max(0, int((sub_at - s_at).total_seconds()))
+        time_fmt = f"{total_sec // 60:02d}:{total_sec % 60:02d}"
+
+    show_score = True
 
     return SubmitResponse(
         status="SUBMITTED",
@@ -485,5 +529,10 @@ def submit_exam(
         show_score=show_score,
         score=attempt.score if show_score else None,
         percentage=attempt.percentage if show_score else None,
-        band=attempt.band if show_score else None
+        band=attempt.band if show_score else None,
+        result=result_str,
+        correct_count=corr_cnt,
+        wrong_count=wrg_cnt,
+        unanswered_count=unans_cnt,
+        time_taken_formatted=time_fmt
     )

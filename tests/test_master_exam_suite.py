@@ -70,6 +70,11 @@ def exam_test_setup():
             settings={"department": "HR"}
         )
         session.add(ass)
+    # Ensure clean attempts for test suite candidates
+    session.query(Answer).filter(Answer.attempt.has(Attempt.employee_code.in_(["CAND_SUITE_01", "CAND_SUITE_02", "CAND_SUITE_03"]))).delete(synchronize_session=False)
+    session.query(Violation).filter(Violation.attempt.has(Attempt.employee_code.in_(["CAND_SUITE_01", "CAND_SUITE_02", "CAND_SUITE_03"]))).delete(synchronize_session=False)
+    session.query(Restart).filter(Restart.attempt.has(Attempt.employee_code.in_(["CAND_SUITE_01", "CAND_SUITE_02", "CAND_SUITE_03"]))).delete(synchronize_session=False)
+    session.query(Attempt).filter(Attempt.employee_code.in_(["CAND_SUITE_01", "CAND_SUITE_02", "CAND_SUITE_03"])).delete(synchronize_session=False)
     session.commit()
     session.close()
 

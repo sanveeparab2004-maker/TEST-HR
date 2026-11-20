@@ -3,6 +3,7 @@ export interface UserSession {
   role: "CANDIDATE" | "MONITOR" | "ADMIN";
   employeeCode: string;
   fullName: string;
+  department?: string;
   deviceToken?: string;
   attemptId?: number;
 }
@@ -58,6 +59,11 @@ export interface CandidateStatus {
   score?: number | null;
   percentage?: number | null;
   band?: string | null;
+  result?: "PASS" | "FAIL" | null;
+  correctCount?: number | null;
+  wrongCount?: number | null;
+  unansweredCount?: number | null;
+  timeTakenFormatted?: string | null;
 }
 
 export interface SystemCheckState {

@@ -74,6 +74,11 @@ class CandidateStatusResponse(BaseModel):
     score: Optional[int] = None
     percentage: Optional[float] = None
     band: Optional[str] = None
+    result: Optional[str] = None
+    correct_count: Optional[int] = None
+    wrong_count: Optional[int] = None
+    unanswered_count: Optional[int] = None
+    time_taken_formatted: Optional[str] = None
 
 
 class SubmitResponse(BaseModel):
@@ -84,3 +89,8 @@ class SubmitResponse(BaseModel):
     score: Optional[int] = None
     percentage: Optional[float] = None
     band: Optional[str] = None
+    result: Optional[str] = None
+    correct_count: Optional[int] = None
+    wrong_count: Optional[int] = None
+    unanswered_count: Optional[int] = None
+    time_taken_formatted: Optional[str] = None

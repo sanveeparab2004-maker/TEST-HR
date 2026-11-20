@@ -60,6 +60,13 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
           setActiveWarning({ tier, kind, message, remaining });
           setWarningCount((prev) => prev + 1);
         },
+        onRestart: (message, kind) => {
+          setActiveWarning({ tier: "RESTART", kind, message, remaining: 0 });
+          setWarningCount(0);
+          setAnswers({});
+          setRemainingSeconds(3600);
+          setCurrentIndex(0);
+        },
         onPostFinalNoted: (kind, message) => {
           setPostFinalToast(message);
           setWarningCount((prev) => prev + 1);
@@ -422,7 +429,7 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
       {/* Floating Draggable Self Camera Tile */}
       <SelfCameraTile stream={stream} warningCount={warningCount} />
 
-      {/* Fullscreen Warning Modal (Warnings 1, 2, 3, and FINAL) */}
+      {/* Fullscreen Warning Modal (Warnings 1..5, and RESTART) */}
       {activeWarning && (
         <WarningModal
           isOpen={true}
@@ -430,7 +437,14 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
           kind={activeWarning.kind}
           message={activeWarning.message}
           remainingWarnings={activeWarning.remaining}
-          onAcknowledge={() => setActiveWarning(null)}
+          isRestart={activeWarning.tier === "RESTART"}
+          onAcknowledge={() => {
+            const wasRestart = activeWarning.tier === "RESTART";
+            setActiveWarning(null);
+            if (wasRestart) {
+              window.location.reload();
+            }
+          }}
         />
       )}
 
