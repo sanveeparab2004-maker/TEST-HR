@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     EXAM_DURATION_MINUTES: int = int(os.getenv("TEST_DURATION_MINUTES", "60"))
     TOTAL_MARKS: int = int(os.getenv("TOTAL_MARKS", "100"))
     PASS_MARKS: int = int(os.getenv("PASS_MARKS", "35"))
-    MARKS_PER_QUESTION: int = int(os.getenv("MARKS_PER_QUESTION", "2"))
+    MARKS_PER_QUESTION: int = int(os.getenv("MARKS_PER_QUESTION", "1"))
     NEGATIVE_MARKING: float = float(os.getenv("NEGATIVE_MARKING", "0"))
     MAX_TAB_WARNINGS: int = int(os.getenv("MAX_TAB_WARNINGS", "5"))
     MAX_FACE_WARNINGS: int = int(os.getenv("MAX_FACE_WARNINGS", "5"))

@@ -175,7 +175,7 @@ def test_question_import_validation():
     sample_csv = generate_sample_template_csv().encode("utf-8")
     valid_q, errors, dept_marks = parse_and_validate_question_file(sample_csv, "template.csv")
     assert len(errors) == 0
-    assert len(valid_q) == 100
+    assert len(valid_q) == 200  # 100 HR + 100 CLAIM
     assert dept_marks.get("HR") == 100
     assert dept_marks.get("CLAIM") == 100
 

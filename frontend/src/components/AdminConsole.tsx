@@ -612,7 +612,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ user, onLogout }) =>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Import Department Question Paper</h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Upload a CSV or Excel file with question_id, department, question_text, option_a..d, correct_option, marks (Total must equal 100).
+                    Upload a CSV or Excel file with question_id, department, question_text, option_a..d, correct_option, marks (100 questions of 1 mark each = 100 marks total).
                   </p>
                 </div>
                 <div className="flex items-center gap-3">

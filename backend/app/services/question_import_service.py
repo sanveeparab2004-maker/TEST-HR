@@ -18,9 +18,9 @@ def generate_sample_template_csv() -> str:
     writer = csv.writer(output)
     writer.writerow(TEMPLATE_COLUMNS)
     # Add sample rows that sum to 100
-    # For demo template, 50 questions of 2 marks each for HR and CLAIM
+    # Template: 100 questions of 1 mark each for HR and CLAIM
     for dept in ["HR", "CLAIM"]:
-        for i in range(1, 51):
+        for i in range(1, 101):
             writer.writerow([
                 f"{dept}_{i:03d}",
                 dept,
@@ -30,7 +30,7 @@ def generate_sample_template_csv() -> str:
                 f"Option C text for Q{i}",
                 f"Option D text for Q{i}",
                 "A" if (i % 4 == 1) else ("B" if i % 4 == 2 else ("C" if i % 4 == 3 else "D")),
-                2
+                1
             ])
     return output.getvalue()
 
