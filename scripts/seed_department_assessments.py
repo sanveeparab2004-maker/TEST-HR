@@ -10,38 +10,38 @@ from backend.app.models.models import Assessment
 DEPARTMENTS = [
     {
         "code": "HR",
-        "title": "HR TEAM – PROFESSIONAL ASSESSMENT",
+        "title": "CS CREATIVE SOLUTIONS – HR ASSESSMENT",
         "status": "OPEN",
         "duration_minutes": 60,
         "total_marks": 100,
-        "marks_per_question": 2,
+        "marks_per_question": 1,
         "description": "Recruitment Planning, Sourcing, Operations, Excel MIS & Communication"
     },
     {
         "code": "CLAIM",
-        "title": "CLAIM TEAM – PROFESSIONAL ASSESSMENT",
+        "title": "CS CREATIVE SOLUTIONS – CLAIM ASSESSMENT",
         "status": "DRAFT",
         "duration_minutes": 60,
         "total_marks": 100,
-        "marks_per_question": 2,
+        "marks_per_question": 1,
         "description": "Claims Adjudication, Verification, Policy Compliance & Investigation"
     },
     {
         "code": "TENDER",
-        "title": "TENDER TEAM – PROFESSIONAL ASSESSMENT",
+        "title": "CS CREATIVE SOLUTIONS – TENDER ASSESSMENT",
         "status": "DRAFT",
         "duration_minutes": 60,
         "total_marks": 100,
-        "marks_per_question": 2,
+        "marks_per_question": 1,
         "description": "Bidding Management, Tender Documentation, Evaluation & Vendor Relations"
     },
     {
         "code": "ADMIN",
-        "title": "ADMIN TEAM – PROFESSIONAL ASSESSMENT",
+        "title": "CS CREATIVE SOLUTIONS – ADMIN ASSESSMENT",
         "status": "DRAFT",
         "duration_minutes": 60,
         "total_marks": 100,
-        "marks_per_question": 2,
+        "marks_per_question": 1,
         "description": "Office Operations, Facilities, General Administration & MIS"
     }
 ]
@@ -73,11 +73,13 @@ def seed_departments():
                 db.add(new_a)
                 print(f"  + Created assessment: {dept['title']} ({dept['code']})")
             else:
+                existing.title = dept["title"]
+                existing.marks_per_question = dept["marks_per_question"]
                 st = dict(existing.settings or {})
                 st["department"] = dept["code"]
                 st["description"] = dept["description"]
                 existing.settings = st
-                print(f"  ✓ Verified assessment: {existing.title} (ID {existing.id})")
+                print(f"  ✓ Updated assessment: {existing.title} (ID {existing.id})")
         db.commit()
         print("[✓] All department assessments ready.")
     finally:

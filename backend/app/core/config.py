@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    PROJECT_NAME: str = "HR Assessment Portal"
+    PROJECT_NAME: str = "CS Creative Solutions Assessment Portal"
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     SECRET_KEY: str = os.getenv("SECRET_KEY", "dev_secret_key_change_in_production_1234567890")
     ALGORITHM: str = "HS256"

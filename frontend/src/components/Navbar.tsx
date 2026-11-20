@@ -17,7 +17,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, examTitle }) => 
         </div>
         <div>
           <h1 className="font-semibold text-slate-900 text-sm tracking-tight leading-none">
-            {examTitle || "HR Team Assessment Portal"}
+            {examTitle || "CS Creative Solutions Assessment Portal"}
           </h1>
           <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>

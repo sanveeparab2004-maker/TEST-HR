@@ -31,7 +31,7 @@ const DEPARTMENTS: Record<DepartmentKey, DepartmentMeta> = {
     key: "HR",
     label: "HR Team Assessment",
     shortName: "HR",
-    subtitle: "Recruitment, Sourcing, Operations, Excel MIS & Judgment",
+    subtitle: "CS Creative Solutions • Recruitment, Sourcing, Operations, Excel MIS & Judgment",
     icon: Users,
     status: "ACTIVE",
     statusText: "Active • Live Test",
@@ -49,7 +49,7 @@ const DEPARTMENTS: Record<DepartmentKey, DepartmentMeta> = {
     key: "CLAIM",
     label: "Claims Team Assessment",
     shortName: "CLAIM",
-    subtitle: "Claims Processing, Investigation, Auditing & Policy Compliance",
+    subtitle: "CS Creative Solutions • Claims Processing, Investigation, Auditing & Policy Compliance",
     icon: FileCheck,
     status: "PENDING",
     statusText: "Questionnaire Coming Soon",
@@ -67,7 +67,7 @@ const DEPARTMENTS: Record<DepartmentKey, DepartmentMeta> = {
     key: "TENDER",
     label: "Tender Team Assessment",
     shortName: "TENDER",
-    subtitle: "Bid Management, Tender Documentation, Evaluation & Vendor Relations",
+    subtitle: "CS Creative Solutions • Bid Management, Tender Documentation, Evaluation & Vendor Relations",
     icon: Briefcase,
     status: "PENDING",
     statusText: "Questionnaire Coming Soon",
@@ -85,7 +85,7 @@ const DEPARTMENTS: Record<DepartmentKey, DepartmentMeta> = {
     key: "ADMIN",
     label: "Admin Operations Assessment",
     shortName: "ADMIN",
-    subtitle: "Office Administration, Procurement, Facilities & Statutory Compliance",
+    subtitle: "CS Creative Solutions • Office Administration, Procurement, Facilities & Statutory Compliance",
     icon: Building2,
     status: "PENDING",
     statusText: "Questionnaire Coming Soon",
@@ -164,7 +164,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         <div className="relative z-10 flex items-center justify-between">
           <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 text-xs font-medium text-brand-200">
             <Shield className="w-4 h-4 text-brand-400" />
-            Corporate Assessment Portal
+            CS Creative Solutions Assessment Portal
           </div>
           <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${currentMeta.badgeBg} flex items-center gap-1.5`}>
             {currentMeta.status === "ACTIVE" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>}
@@ -176,7 +176,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         <div className="relative z-10 max-w-lg my-auto space-y-6">
           <div className="space-y-2">
             <span className="text-xs uppercase tracking-widest text-brand-400 font-bold">
-              {currentMeta.shortName} Assessment Track
+              CS Creative Solutions • {currentMeta.shortName} Track
             </span>
             <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
               {currentMeta.label}
