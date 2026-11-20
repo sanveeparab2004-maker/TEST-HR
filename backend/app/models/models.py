@@ -79,6 +79,7 @@ class Question(Base):
     source_number = Column(SmallInteger, nullable=False)
     stem = Column(Text, nullable=False)
     marks = Column(SmallInteger, nullable=False, default=2)
+    department = Column(String(64), nullable=True, default="HR")
 
     assessment = relationship("Assessment", back_populates="questions")
     section = relationship("Section", back_populates="questions")
@@ -126,6 +127,11 @@ class Attempt(Base):
     option_order = Column(JSON, nullable=False)    # Dict[str(qid), List[int]]
     warning_count = Column(SmallInteger, nullable=False, default=0)
     violation_count = Column(Integer, nullable=False, default=0)
+    restart_count = Column(SmallInteger, nullable=False, default=0)
+    tab_switch_total = Column(SmallInteger, nullable=False, default=0)
+    face_violation_total = Column(SmallInteger, nullable=False, default=0)
+    sheet_synced = Column(Boolean, nullable=False, default=False)
+    sheet_synced_at = Column(DateTime(timezone=True), nullable=True)
     score = Column(SmallInteger, nullable=True)
     percentage = Column(Numeric(5, 2), nullable=True)
     band = Column(Text, nullable=True)
@@ -135,6 +141,7 @@ class Attempt(Base):
     roster_entry = relationship("Roster", back_populates="attempts")
     answers = relationship("Answer", back_populates="attempt", cascade="all, delete-orphan")
     violations = relationship("Violation", back_populates="attempt", cascade="all, delete-orphan")
+    restarts = relationship("Restart", back_populates="attempt", cascade="all, delete-orphan")
 
 
 class Answer(Base):
@@ -165,6 +172,7 @@ class Violation(Base):
     detail = Column(JSON, nullable=True)
     counted = Column(Boolean, nullable=False)
     warning_number = Column(SmallInteger, nullable=True)
+    action = Column(String(20), nullable=False, default="WARNING")
     review_status = Column(String(20), nullable=False, default="PENDING")
     reviewed_by = Column(Text, nullable=True)
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
@@ -207,3 +215,37 @@ class AuditLog(Base):
     action = Column(Text, nullable=True)
     entity = Column(Text, nullable=True)
     detail = Column(JSON, nullable=True)
+
+
+class Restart(Base):
+    __tablename__ = "restarts"
+    __table_args__ = schema_args()
+
+    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
+    attempt_id = Column(BigInteger().with_variant(Integer, "sqlite"), ForeignKey(f"{SCHEMA_NAME}.attempts.id" if SCHEMA_NAME else "attempts.id", ondelete="CASCADE"), nullable=False)
+    candidate_id = Column(String(128), nullable=True)
+    reason = Column(Text, nullable=False)
+    restart_number = Column(SmallInteger, nullable=False, default=1)
+    at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    attempt = relationship("Attempt", back_populates="restarts")
+
+
+class PendingSheetWrite(Base):
+    __tablename__ = "pending_sheet_writes"
+    __table_args__ = schema_args(
+        Index("idx_pending_sheet_writes_status", "status"),
+        UniqueConstraint("idempotency_key", name="uq_pending_sheet_writes_key")
+    )
+
+    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
+    attempt_id = Column(BigInteger().with_variant(Integer, "sqlite"), nullable=True)
+    operation = Column(String(64), nullable=False)
+    idempotency_key = Column(String(256), nullable=False, unique=True)
+    payload = Column(JSON, nullable=False)
+    retries = Column(Integer, nullable=False, default=0)
+    max_retries = Column(Integer, nullable=False, default=10)
+    status = Column(String(20), nullable=False, default="PENDING")
+    last_error = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))

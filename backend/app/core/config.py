@@ -24,10 +24,21 @@ class Settings(BaseSettings):
     DB_POOL_PRE_PING: bool = True
 
     # Assessment defaults
-    EXAM_DURATION_MINUTES: int = 60
-    TOTAL_MARKS: int = 100
-    MARKS_PER_QUESTION: int = 2
-    NEGATIVE_MARKING: bool = False
+    EXAM_DURATION_MINUTES: int = int(os.getenv("TEST_DURATION_MINUTES", "60"))
+    TOTAL_MARKS: int = int(os.getenv("TOTAL_MARKS", "100"))
+    PASS_MARKS: int = int(os.getenv("PASS_MARKS", "35"))
+    MARKS_PER_QUESTION: int = int(os.getenv("MARKS_PER_QUESTION", "2"))
+    NEGATIVE_MARKING: float = float(os.getenv("NEGATIVE_MARKING", "0"))
+    MAX_TAB_WARNINGS: int = int(os.getenv("MAX_TAB_WARNINGS", "5"))
+    MAX_FACE_WARNINGS: int = int(os.getenv("MAX_FACE_WARNINGS", "5"))
+    FACE_MISSING_SECONDS: int = int(os.getenv("FACE_MISSING_SECONDS", "3"))
+    FACE_MATCH_THRESHOLD: float = float(os.getenv("FACE_MATCH_THRESHOLD", "0.5"))
+    DEPARTMENTS: List[str] = ["HR", "CLAIM", "TENDER", "ADMIN", "OPERATIONS", "ACCOUNTS"]
+
+    # Google Sheets Integration
+    GOOGLE_SHEET_ID: str = os.getenv("GOOGLE_SHEET_ID", "184qGjXRADe6RLzAlBy3LGk78xzkUa8GXeqkBOzWvkWI")
+    GOOGLE_SERVICE_ACCOUNT_JSON: Optional[str] = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", None)
+    GOOGLE_SERVICE_ACCOUNT_FILE: Optional[str] = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", None)
 
     # Seed credentials
     DEFAULT_MONITOR_CODE: str = os.getenv("DEFAULT_MONITOR_CODE", "HR_MONITOR_01")

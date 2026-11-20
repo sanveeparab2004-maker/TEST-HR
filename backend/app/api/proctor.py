@@ -1,3 +1,7 @@
+from backend.app.core.config import settings
+from backend.app.services.shuffle_service import generate_attempt_shuffle
+from backend.app.services.sheets_service import queue_or_write_sheet
+from backend.app.models.models import Restart, Question, Option, Answer
 import base64
 import time
 from datetime import datetime, timezone, timedelta
@@ -46,35 +50,85 @@ def report_violation(
         )
 
     now = datetime.now(timezone.utc)
-    is_counted = req.kind.upper() not in UNCOUNTED_KINDS
+    kind_upper = req.kind.upper()
+    is_counted = kind_upper not in UNCOUNTED_KINDS
 
     attempt.violation_count += 1
     warn_num = None
     tier = "UNCOUNTED"
+    action = "WARNING"
+
+    # Increment specific violation totals
+    if kind_upper in ("TAB_SWITCH", "FULLSCREEN_EXIT", "WINDOW_BLUR"):
+        attempt.tab_switch_total += 1
+    elif kind_upper in ("NO_FACE", "FACE_MISSING", "MULTIPLE_FACES", "FACE_MISMATCH", "LOOKING_AWAY", "CAMERA_OFF"):
+        attempt.face_violation_total += 1
 
     if is_counted:
-        attempt.warning_count += 1
-        warn_num = attempt.warning_count
-
-        if warn_num == 1:
-            tier = "WARNING_1"
-        elif warn_num == 2:
-            tier = "WARNING_2"
-        elif warn_num == 3:
-            tier = "WARNING_3"
-        elif warn_num == 4:
-            tier = "FINAL_WARNING"
+        if attempt.warning_count < 5:
+            attempt.warning_count += 1
+            warn_num = attempt.warning_count
+            action = "WARNING"
+            if warn_num == 1:
+                tier = "WARNING_1"
+            elif warn_num == 2:
+                tier = "WARNING_2"
+            elif warn_num == 3:
+                tier = "WARNING_3"
+            elif warn_num == 4:
+                tier = "FINAL_WARNING"
+            else:
+                tier = "POST_FINAL_NOTED"
         else:
-            tier = "POST_FINAL_NOTED"
+            # 6th counted violation: Trigger RESTART
+            action = "RESTART"
+            tier = "RESTART"
+            warn_num = 6
+            attempt.restart_count += 1
+            attempt.warning_count = 0  # reset current run counter
+
+            # 1. Reset timer to fresh 60 minutes
+            attempt.started_at = now
+            attempt.deadline_at = now + timedelta(minutes=settings.EXAM_DURATION_MINUTES)
+
+            # 2. Clear candidate saved answers
+            db.query(Answer).filter_by(attempt_id=attempt.id).delete()
+
+            # 3. Reshuffle questions and options to a brand new order
+            questions = db.query(Question).filter_by(assessment_id=attempt.assessment_id).all()
+            options_by_q = {q.id: db.query(Option).filter_by(question_id=q.id).all() for q in questions}
+            new_q_ids, new_opt_order = generate_attempt_shuffle(questions, options_by_q)
+            attempt.question_order = new_q_ids
+            attempt.option_order = new_opt_order
+
+            # 4. Record Restart
+            restart_record = Restart(
+                attempt_id=attempt.id,
+                candidate_id=attempt.employee_code,
+                reason=f"Exceeded 5 violations: {kind_upper}",
+                restart_number=attempt.restart_count,
+                at=now
+            )
+            db.add(restart_record)
+
+            # 5. Queue Sheet writes
+            queue_or_write_sheet(
+                db=db,
+                operation="append_restart",
+                idempotency_key=f"restart_{attempt.id}_{attempt.restart_count}",
+                payload={"row": [now.isoformat(), attempt.id, attempt.employee_code, restart_record.reason, attempt.restart_count]},
+                attempt_id=attempt.id
+            )
 
     # Create violation row
     violation = Violation(
         attempt_id=attempt.id,
         at=now,
-        kind=req.kind.upper(),
+        kind=kind_upper,
         detail=req.detail or {},
         counted=is_counted,
         warning_number=warn_num,
+        action=action,
         review_status="PENDING"
     )
     db.add(violation)
@@ -113,6 +167,15 @@ def report_violation(
 
     db.commit()
 
+    # Sync violation to Google Sheet
+    queue_or_write_sheet(
+        db=db,
+        operation="append_violation",
+        idempotency_key=f"violation_{attempt.id}_{violation.id}",
+        payload={"row": [now.isoformat(), attempt.id, attempt.employee_code, violation.kind, warn_num or "", action]},
+        attempt_id=attempt.id
+    )
+
     # Real-time alert push to active monitors
     try:
         import asyncio
@@ -133,7 +196,9 @@ def report_violation(
         pass
 
     message = ""
-    if tier in ("WARNING_1", "WARNING_2", "WARNING_3"):
+    if action == "RESTART":
+        message = "You have exceeded the maximum allowed violations (5). Your test has been restarted with a fresh timer and a new question order. All previous answers have been cleared."
+    elif tier in ("WARNING_1", "WARNING_2", "WARNING_3"):
         remaining = 3 - warn_num
         message = f"Warning {warn_num}/3: Security incident detected ({req.kind}). You have {remaining} warning(s) remaining."
     elif tier == "FINAL_WARNING":
@@ -149,7 +214,9 @@ def report_violation(
         warning_tier=tier,
         counted=is_counted,
         message=message,
-        server_time=now
+        server_time=now,
+        action=action,
+        restart_count=attempt.restart_count
     )
 
 

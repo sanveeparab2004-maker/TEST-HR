@@ -16,12 +16,33 @@ from backend.app.api.admin import router as admin_api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import asyncio
     # Startup: Check database connection and run safe advisory lock migration
     db_ok = check_database_connection(retries=3, backoff=1.5)
     if db_ok:
         run_advisory_lock_migration()
+        # Initialize Google Sheet structure & formatting safely
+        try:
+            from backend.app.services.sheets_service import ensure_sheet_tabs_and_headers
+            ensure_sheet_tabs_and_headers()
+        except Exception:
+            pass
+
+    # Background task to drain pending sheet writes every 30 seconds
+    async def sheet_drain_loop():
+        while True:
+            try:
+                from backend.app.core.database import SessionLocal
+                from backend.app.services.sheets_service import process_pending_sheet_writes
+                with SessionLocal() as session:
+                    process_pending_sheet_writes(session)
+            except Exception:
+                pass
+            await asyncio.sleep(30)
+
+    drain_task = asyncio.create_task(sheet_drain_loop())
     yield
-    # Shutdown logic if any
+    drain_task.cancel()
 
 
 app = FastAPI(

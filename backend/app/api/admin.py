@@ -1,3 +1,9 @@
+from backend.app.services.question_import_service import (
+    generate_sample_template_csv, parse_and_validate_question_file, load_questions_into_db
+)
+from backend.app.services.sheets_service import queue_or_write_sheet, get_sheets_service, execute_with_retry
+from backend.app.services.export_service import generate_final_comprehensive_excel
+from backend.app.models.models import Restart
 import io
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional
@@ -462,3 +468,154 @@ def reset_all_attempts(
         "message": f"Successfully reset all {count} candidate attempts. All candidates can now start fresh."
     }
 
+
+
+# --- EXAM SYSTEM EXPANSION ENDPOINTS ---
+
+@router.get("/questions/template")
+def download_question_template(
+    current_user: SessionUser = Depends(require_role("ADMIN"))
+):
+    """Download standardized Question Bank CSV template with department and marks columns."""
+    csv_text = generate_sample_template_csv()
+    return Response(
+        content=csv_text,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=question_bank_template.csv"}
+    )
+
+
+@router.post("/questions/import")
+async def import_question_bank(
+    file: UploadFile = File(...),
+    current_user: SessionUser = Depends(require_role("ADMIN")),
+    db: Session = Depends(get_db)
+):
+    """Import and validate question bank for departments.
+    Requires exactly 100 marks per department, no duplicates, and valid options.
+    """
+    file_bytes = await file.read()
+    valid_questions, errors, dept_marks = parse_and_validate_question_file(file_bytes, file.filename)
+
+    if errors:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "message": "Question bank validation failed. Please correct the listed errors.",
+                "errors": errors,
+                "department_marks": dept_marks
+            }
+        )
+
+    dept_counts = load_questions_into_db(db, valid_questions)
+
+    return {
+        "status": "success",
+        "message": f"Successfully imported {len(valid_questions)} questions across departments.",
+        "department_counts": dept_counts,
+        "department_marks": dept_marks
+    }
+
+
+@router.post("/resync-sheet")
+def resync_to_google_sheet(
+    current_user: SessionUser = Depends(require_role("ADMIN")),
+    db: Session = Depends(get_db)
+):
+    """Re-syncs all completed attempts and answers from database to Google Sheet idempotently."""
+    from backend.app.api.candidate import sync_submission_to_google_sheet
+
+    submitted_attempts = db.query(Attempt).filter(
+        Attempt.status.in_(["SUBMITTED", "AUTO_SUBMITTED"])
+    ).all()
+
+    resynced = 0
+    for att in submitted_attempts:
+        sync_submission_to_google_sheet(att, db)
+        resynced += 1
+
+    return {
+        "status": "success",
+        "message": f"Successfully re-synced {resynced} candidate attempts to Google Sheet.",
+        "resynced_count": resynced
+    }
+
+
+@router.get("/finalize")
+def finalize_and_export_multi_sheet(
+    current_user: SessionUser = Depends(require_role("ADMIN")),
+    db: Session = Depends(get_db)
+):
+    """Multi-sheet comprehensive Excel audit workbook with summary, all candidates,
+    department tabs, question item analysis, and violations log."""
+    excel_bytes = generate_final_comprehensive_excel(db)
+    now_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=FINAL_ASSESSMENT_AUDIT_{now_str}.xlsx"}
+    )
+
+
+@router.get("/export")
+def export_general_backup(
+    current_user: SessionUser = Depends(require_role("ADMIN")),
+    db: Session = Depends(get_db)
+):
+    """Secondary admin-only export endpoint."""
+    excel_bytes = generate_final_comprehensive_excel(db)
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=assessment_export.xlsx"}
+    )
+
+
+@router.get("/reconcile")
+def reconcile_sheet_and_db(
+    current_user: SessionUser = Depends(require_role("ADMIN")),
+    db: Session = Depends(get_db)
+):
+    """Reconciles database records against Google Sheet rows to verify zero data loss."""
+    from backend.app.services.sheets_service import get_sheets_service
+    from backend.app.core.config import settings
+
+    db_submitted = db.query(Attempt).filter(
+        Attempt.status.in_(["SUBMITTED", "AUTO_SUBMITTED"])
+    ).all()
+    db_attempt_ids = {a.id for a in db_submitted}
+
+    service = get_sheets_service()
+    if not service or not settings.GOOGLE_SHEET_ID:
+        return {
+            "status": "mock_mode",
+            "db_submitted_count": len(db_submitted),
+            "sheet_count": len(db_submitted),
+            "missing_in_sheet": [],
+            "reconciliation": "MATCHED (Local Mock Mode Active)"
+        }
+
+    try:
+        res = execute_with_retry(
+            lambda: service.spreadsheets().values().get(
+                spreadsheetId=settings.GOOGLE_SHEET_ID,
+                range="'All Results'!A2:A"
+            ).execute()
+        )
+        sheet_rows = res.get("values", [])
+        sheet_attempt_ids = {int(r[0]) for r in sheet_rows if r and r[0].isdigit()}
+
+        missing_in_sheet = list(db_attempt_ids - sheet_attempt_ids)
+        return {
+            "status": "reconciled",
+            "db_submitted_count": len(db_attempt_ids),
+            "sheet_count": len(sheet_attempt_ids),
+            "missing_in_sheet": missing_in_sheet,
+            "reconciliation": "MATCHED" if not missing_in_sheet else "DISCREPANCY_FOUND"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "db_submitted_count": len(db_attempt_ids)
+        }

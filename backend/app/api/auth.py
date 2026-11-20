@@ -1,3 +1,6 @@
+import json
+from backend.app.services.shuffle_service import generate_attempt_shuffle
+from backend.app.services.sheets_service import queue_or_write_sheet
 import random
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
@@ -138,6 +141,14 @@ def login(
         )
 
     now = datetime.now(timezone.utc)
+    # Single attempt enforcement on server across assessments
+    existing_attempt = db.query(Attempt).filter_by(employee_code=code).first()
+    if existing_attempt and existing_attempt.status in ("SUBMITTED", "AUTO_SUBMITTED", "VOID"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You have already attempted this test."
+        )
+
     attempt = db.query(Attempt).filter_by(assessment_id=assessment.id, employee_code=code).first()
 
     device_token_to_return = None
@@ -191,15 +202,10 @@ def login(
         device_token_hash = hash_device_token(raw_device_token)
         device_token_to_return = raw_device_token
 
-        # Order questions strictly by source_number 1 to 50 line-wise
-        questions = db.query(Question).filter_by(assessment_id=assessment.id).order_by(Question.source_number).all()
-        ordered_q_ids = [q.id for q in questions]
-
-        # Options in original document order A, B, C, D
-        option_order = {}
-        for q in questions:
-            opts = db.query(Option).filter_by(question_id=q.id).order_by(Option.label).all()
-            option_order[str(q.id)] = [o.id for o in opts]
+        # Cryptographically secure per-attempt Fisher-Yates shuffle
+        questions = db.query(Question).filter_by(assessment_id=assessment.id).all()
+        options_by_q = {q.id: db.query(Option).filter_by(question_id=q.id).order_by(Option.label).all() for q in questions}
+        ordered_q_ids, option_order = generate_attempt_shuffle(questions, options_by_q)
 
         # Strict 60-minute duration backed by DB
         deadline_at = now + timedelta(minutes=assessment.duration_minutes)
@@ -228,6 +234,32 @@ def login(
         ))
         db.commit()
         db.refresh(attempt)
+
+        # Log attempt creation to Google Sheet Attempts tab (idempotent)
+        sheet_attempt_row = [
+            attempt.id,
+            code,
+            entry.full_name,
+            entry.department or target_dept,
+            target_dept,
+            now.isoformat(),
+            deadline_at.isoformat(),
+            "in_progress",
+            0,
+            0,
+            0,
+            "",
+            assessment.total_marks,
+            json.dumps(ordered_q_ids),
+            json.dumps(option_order)
+        ]
+        queue_or_write_sheet(
+            db=db,
+            operation="append_attempt",
+            idempotency_key=f"attempt_{attempt.id}_init",
+            payload={"row": sheet_attempt_row},
+            attempt_id=attempt.id
+        )
 
     token = create_access_token({
         "sub": code,

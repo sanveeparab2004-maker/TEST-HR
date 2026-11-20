@@ -16,6 +16,8 @@ class ViolationReportResponse(BaseModel):
     counted: bool
     message: str
     server_time: datetime
+    action: Optional[str] = "WARNING"
+    restart_count: Optional[int] = 0
 
 
 class HeartbeatRequest(BaseModel):
@@ -30,3 +32,5 @@ class HeartbeatResponse(BaseModel):
     warning_count: int
     remaining_seconds: int
     server_time: datetime
+    action: Optional[str] = "WARNING"
+    restart_count: Optional[int] = 0

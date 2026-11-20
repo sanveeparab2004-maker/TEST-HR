@@ -121,3 +121,65 @@ python -m pytest tests -v
 2. **Single-Worker Signalling**: WebRTC peer signalling state is kept in-process (`SignalingManager`). Running multiple container replicas would require an external Redis pub/sub. On Render free tier, exactly **1 instance** must be maintained.
 3. **P2P NAT Constraints**: Public Google STUN servers resolve 85%+ of standard network topologies. Symmetric corporate firewalls blocking UDP will gracefully fall back to **Snapshot Mode** (240px JPEG over WebSocket).
 4. **Snapshot Storage Budget**: Storing high-resolution continuous video would exceed Neon's 0.5 GiB free tier within minutes. We enforce a 10-second rate limit, 320px JPEG compression, and a ceiling of 60 snapshots per candidate attempt.
+
+
+---
+
+## Department-Wise Proctored Exam & Google Sheets Integration
+
+### 1. Exam Configuration
+- **Total Marks**: 100
+- **Duration**: Exactly 60 minutes (Server authoritative UTC timer)
+- **Passing Mark**: 35 (Score >= 35 is **PASS**, otherwise **FAIL**)
+- **Single Attempt Rule**: Candidates are restricted to exactly one attempt. Re-entry after submission is blocked on the server.
+- **Anti-Copying Cryptographic Shuffle**:
+  - Questions and options are shuffled per attempt using `secrets.SystemRandom()` (Fisher-Yates).
+  - Shuffled order is persisted in PostgreSQL/SQLite and synced to the Google Sheet `Attempts` tab.
+  - Position-dependent options ("All of the above", "None of the above", "Both A and B") remain unshuffled.
+  - Grading maps by option ID, guaranteeing zero scoring errors.
+
+### 2. Google Service Account Setup (Step-by-Step)
+1. **Create Service Account**:
+   - Navigate to [Google Cloud Console](https://console.cloud.google.com/).
+   - Create a project (or select an existing one) and enable the **Google Sheets API** and **Google Drive API**.
+   - Go to **IAM & Admin > Service Accounts > Create Service Account**.
+   - Assign the Service Account Name (e.g. `exam-sheets-sync`) and grant role **Editor**.
+   - Go to the **Keys** tab > **Add Key** > **Create new key (JSON)**. Download the JSON key file.
+2. **Share Google Sheet**:
+   - Open Google Sheet: `https://docs.google.com/spreadsheets/d/184qGjXRADe6RLzAlBy3LGk78xzkUa8GXeqkBOzWvkWI/edit`
+   - Click **Share** in the top right.
+   - Add the service account client email (e.g. `exam-sheets-sync@...iam.gserviceaccount.com`) as **Editor**.
+   - **IMPORTANT**: Set General Access to **Restricted** because this spreadsheet stores confidential candidate results and audit logs.
+3. **Configure Render Environment Variables**:
+   In your Render dashboard for the Web Service, add the following environment variables:
+   | Variable | Value / Description |
+   | :--- | :--- |
+   | `GOOGLE_SHEET_ID` | `184qGjXRADe6RLzAlBy3LGk78xzkUa8GXeqkBOzWvkWI` |
+   | `GOOGLE_SERVICE_ACCOUNT_JSON` | Entire JSON content of your downloaded service account key file (compact string) |
+   | `TEST_DURATION_MINUTES` | `60` |
+   | `TOTAL_MARKS` | `100` |
+   | `PASS_MARKS` | `35` |
+   | `MAX_TAB_WARNINGS` | `5` |
+   | `MAX_FACE_WARNINGS` | `5` |
+   | `FACE_MISSING_SECONDS` | `3` |
+   | `FACE_MATCH_THRESHOLD` | `0.5` |
+   | `NEGATIVE_MARKING` | `0` |
+
+### 3. Google Sheets Multi-Tab Layout & Formatting
+The integration creates and auto-formats the following tabs:
+- **`Dashboard`**: Executive KPI cards (Total Attempts, Passed, Failed, Pass %, Average, Highest, Violations, Restarts) and department breakdown with live `=COUNTIF`, `=AVERAGEIFS`, and `=MAXIFS` formulas.
+- **`All Results`**: Append-only candidate results with status (`PASS` in soft green `#E2EFDA`, `FAIL` in soft red `#FCE4D6`), department rank, and time taken.
+- **`Dept - <Name>`**: Individual department tabs (`Dept - HR`, `Dept - CLAIM`, `Dept - TENDER`, `Dept - ADMIN`, `Dept - OPERATIONS`, `Dept - ACCOUNTS`).
+- **`Attempts`**: Append-only attempt log storing question and option shuffle JSON for reproducibility.
+- **`Answers`**: Detailed question-by-question candidate selections and correct answers.
+- **`Violations`**: Detailed log of every detected violation (`TAB_SWITCH`, `FULLSCREEN_EXIT`, `FACE_MISSING`, etc.).
+- **`Restarts`**: Append-only log of every violation restart event.
+- **`Question Bank`**: Read-only mirror of imported question papers and answer keys.
+- **`Config`**: Active exam parameters.
+
+### 4. Admin API Endpoints
+- `GET /api/admin/questions/template`: Download sample CSV template.
+- `POST /api/admin/questions/import`: Upload and validate question bank for departments (must sum to 100 marks).
+- `POST /api/admin/resync-sheet`: Re-sync missing attempts from DB to Google Sheet without creating duplicates.
+- `GET /api/admin/finalize`: Generate comprehensive multi-tab Excel export (`FINAL_ASSESSMENT_AUDIT.xlsx`).
+- `GET /api/admin/reconcile`: Compare DB records with Google Sheet rows to verify zero data loss.
