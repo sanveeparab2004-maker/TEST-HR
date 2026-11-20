@@ -15,7 +15,7 @@ DEPARTMENTS = [
         "duration_minutes": 60,
         "total_marks": 100,
         "marks_per_question": 1,
-        "description": "Recruitment Planning, Sourcing, Operations, Excel MIS & Communication"
+        "description": "Talent Acquisition, People Operations & Workplace Excellence"
     },
     {
         "code": "CLAIM",
@@ -42,7 +42,7 @@ DEPARTMENTS = [
         "duration_minutes": 60,
         "total_marks": 100,
         "marks_per_question": 1,
-        "description": "Office Operations, Facilities, General Administration & MIS"
+        "description": "Office Operations, Facilities & Enterprise Administration"
     }
 ]
 

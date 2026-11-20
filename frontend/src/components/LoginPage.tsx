@@ -31,7 +31,7 @@ const DEPARTMENTS: Record<DepartmentKey, DepartmentMeta> = {
     key: "HR",
     label: "HR Team Assessment",
     shortName: "HR",
-    subtitle: "CS Creative Solutions • Recruitment, Sourcing, Operations, Excel MIS & Judgment",
+    subtitle: "CS Creative Solutions • Talent Acquisition, People Operations & Workplace Excellence",
     icon: Users,
     status: "ACTIVE",
     statusText: "Active • Live Test",
