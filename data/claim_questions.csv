@@ -1,0 +1,101 @@
+question_id,department,question_text,option_a,option_b,option_c,option_d,correct_option,marks
+CLAIM_001,CLAIM,What is the official AB-PMJAY Provider Portal link shown in the presentation?,www.pmjay.gov.in,https://provider.nha.gov.in,www.nhaindia.gov.in,www.ayushmanbharat.com,B,1
+CLAIM_002,CLAIM,Which of the following details is required during the portal login process?,Employee ID,Patient Aadhaar Number,Registered Mobile Number / User ID,Hospital Registration Certificate,C,1
+CLAIM_003,CLAIM,What is the purpose of entering a CAPTCHA during login?,To verify that the login is being performed by a human user,To check patient eligibility,To generate a claim number,To approve pre-authorisation,A,1
+CLAIM_004,CLAIM,What should be selected during the ABPMJAY portal login process?,Patient Category,Authentication Mode,Hospital Category,Claim Status,B,1
+CLAIM_005,CLAIM,"If a user is unable to access their login credentials, which option is visible on the login screen?",New Registration,Forgot Credentials,Claim Resubmission,Case Enhancement,B,1
+CLAIM_006,CLAIM,What is the full form of AB-PMJAY?,Ayushman Bharat – Pradhan Mantri Jan Arogya Yojana,Ayushman Bharat – Pradhan Mantri Jeevan Arogya Yojana,Ayushman Bharat – Public Medical Jan Arogya Yojana,Ayushman Bharat – Pradhan Mantri Jan Jeevan Yojana,A,1
+CLAIM_007,CLAIM,Ayushman Bharat Card is also known as which card?,Health Insurance Card,Golden Card,Smart Health Card,Aadhar Card,B,1
+CLAIM_008,CLAIM,Mahatma Jyotirao Phule Jan Arogya Yojana (MJPJAY) was previously known as which scheme?,Ayushman Bharat Yojana,Rashtriya Swasthya Bima Yojana,Rajiv Gandhi Jeevandayee Arogya Yojana,Pradhan Mantri Suraksha Bima Yojana,C,1
+CLAIM_009,CLAIM,Within how many minutes should the Claim Team provide discharge clearance?,30 minutes,45 minutes,15 minutes,60 minutes,C,1
+CLAIM_010,CLAIM,What is the main purpose of the Notification section in the AB-PMJAY Portal?,To check employee attendance,To identify pending cases and important claim-related alerts,To generate hospital bills,To update employee details,B,1
+CLAIM_011,CLAIM,"According to the Notification screen, what does ""Pre-Authorisation Due (Registration + 24 Hrs)"" indicate?",The case is due for discharge,Pre-authorisation is due within the indicated registration timeline,The claim is rejected,Payment has been received,B,1
+CLAIM_012,CLAIM,"What does ""Discharged – Awaiting Claim Submission"" indicate?",The patient is still admitted,"The patient is discharged, but the final claim submission is pending",The pre-authorisation is rejected,The claim payment is completed,B,1
+CLAIM_013,CLAIM,Which of the following is displayed on the AB-PMJAY Dashboard?,Pre-authorisation Submitted,Claims Rejected,Claims Queried,All of the above,D,1
+CLAIM_014,CLAIM,What is the purpose of the Dashboard in the AB-PMJAY Portal?,To view the overall status and summary of cases,To manage employee payroll,To create hospital staff ID cards,To maintain hospital attendance,A,1
+CLAIM_015,CLAIM,Which of the following is a status available in the portal's Patient Status filter?,Pending with Hospital,Employee Pending,Salary Pending,Attendance Pending,A,1
+CLAIM_016,CLAIM,"What does ""Pending with Payer"" indicate?",The case is awaiting action from the payer,The hospital has completed payment,The patient has not been registered,The employee has not submitted attendance,A,1
+CLAIM_017,CLAIM,"What does ""Claims Queried"" mean?",The claim is approved without any query,The claim has received a query requiring clarification or additional information,The claim payment is completed,The patient registration is cancelled,B,1
+CLAIM_018,CLAIM,Which status indicates that the claim has been declined?,Claims Initiated,Claims Queried,Claims Rejected,Pending with Hospital,C,1
+CLAIM_019,CLAIM,Which information can be viewed under Case Details?,Medical Information,Admission Information,Treatment and Finance,All of the above,D,1
+CLAIM_020,CLAIM,"What is the purpose of the ""Initiate Resubmission"" option?",To initiate resubmission of a case,To register a new employee,To generate another case,To cancel hospital registration,A,1
+CLAIM_021,CLAIM,Which option is available on the Case Details screen to request an extra stay?,Ready for Discharge,Initiate Resubmission,Initiate Enhancement,Claims Queried,C,1
+CLAIM_022,CLAIM,What is the full form of NHA?,National Health Association,National Health Authority,National Hospital Administration,National Healthcare Agency,B,1
+CLAIM_023,CLAIM,What is the full form of SHA?,State Health Association,State Health Agency,State Hospital Authority,State Healthcare Administration,B,1
+CLAIM_024,CLAIM,How much health insurance coverage is provided per eligible family per year under the AB-PMJAY scheme?,₹2 Lakh,₹3 Lakh,₹5 Lakh,₹10 Lakh,C,1
+CLAIM_025,CLAIM,Dr. NTR Vaidya Seva Scheme is implemented in which state?,Telangana,Karnataka,Andhra Pradesh,Tamil Nadu,C,1
+CLAIM_026,CLAIM,What is the claim submission TAT (Turnaround Time) for the Dr. NTR scheme?,7 days,15 days,11 days,30 days,C,1
+CLAIM_027,CLAIM,What is the annual health insurance coverage provided under the Dr. NTR Vaidya Seva Scheme?,₹5 Lakh,₹10 Lakh,₹15 Lakh,₹25 Lakh,D,1
+CLAIM_028,CLAIM,What is the final deadline for submitting an AB-PMJAY claim after patient discharge?,15 Days,30 Days,45 Days,60 Days,C,1
+CLAIM_029,CLAIM,Who can avail benefits under AB-PMJAY?,Every person without eligibility conditions,Eligible beneficiaries as per scheme rules,Only government employees,Only private hospital employees,B,1
+CLAIM_030,CLAIM,What does IPD stand for?,Indoor Patient Department,Intensive Patient Details,Internal Patient Document,Insurance Patient Department,A,1
+CLAIM_031,CLAIM,Why are medical reports required during pre-authorisation?,To verify the patient's diagnosis and medical condition,To check hospital staff attendance,To calculate employee salary,To prepare hospital inventory,A,1
+CLAIM_032,CLAIM,Which of the following is included in the basic pre-authorisation document checklist shown in the PPT?,Aadhaar Card,Ayushman Card,Medical Reports,All of the above,D,1
+CLAIM_033,CLAIM,"If a patient dies in the hospital before discharge, which document is required?",Discharge Summary,Form No. 4,Admission Form,Consent Form,B,1
+CLAIM_034,CLAIM,Which investigation is commonly examining for the brain?,ECG,CT scan,LFT,PFT,B,1
+CLAIM_035,CLAIM,Which investigation is mentioned in connection with the heart?,2D Echo,RFT,USG,HPE,A,1
+CLAIM_036,CLAIM,What is the full form of ECG?,Electrocardiogram,Echocardiography,Endoscopic Cardiac Graph,External Cardiac Guide,A,1
+CLAIM_037,CLAIM,Which report is associated with liver function?,RFT,LFT,CBC,ABG,B,1
+CLAIM_038,CLAIM,What is the full form of USG?,Ultrasonic General,Ultrasonography,Universal Scan Graph,Upper System Graph,B,1
+CLAIM_039,CLAIM,Which of the following is a common blood investigation?,CBC,MRI,USG,X-ray,A,1
+CLAIM_040,CLAIM,What is the full form of CBC?,Complete Blood Count,Cardiac Blood Check,Clinical Body Chart,Complete Body Check,A,1
+CLAIM_041,CLAIM,Which procedure is followed before doing surgery?,Anaesthesia,Discharge,Admission,Resubmission,A,1
+CLAIM_042,CLAIM,Which of the following is specifically mentioned as mandatory documentation in the cardiac surgery category?,Stent sticker,Eye sketch,chemo chart,Medicine photo,A,1
+CLAIM_043,CLAIM,What is the full form of CVTS?,Cardiovascular and Thoracic Surgery,Cardiac Vascular Treatment System,Cardiothoracic Vascular Services,Cardiovascular Therapy and Screening,A,1
+CLAIM_044,CLAIM,Which of the following belongs to the ENT surgery category?,Tympanoplasty,CABG,Dialysis,Chemotherapy,A,1
+CLAIM_045,CLAIM,Which photograph is specifically mentioned under ENT surgery?,HD session photo,Chemo photo,Scar abdomen photo,DNE photo,D,1
+CLAIM_046,CLAIM,Which of the following documents is mentioned under Endocrinology?,Bill copy,HD chart,Eye sketch,Chest X-ray,A,1
+CLAIM_047,CLAIM,"After surgical removal of full any tissue or specimen, which report is mandatory to collect?",X ray,HPE Report,USG,ABG Report,B,1
+CLAIM_048,CLAIM,Which documents are mentioned in connection with biopsy?,USG and HPE,ECG and CBC,LFT and RFT,CT and PFT,A,1
+CLAIM_049,CLAIM,What is the full form of HPE?,Histopathological Examination,Human Physiological Evaluation,Hospital Patient Examination,Health Performance Evaluation,A,1
+CLAIM_050,CLAIM,Which photograph is specifically mentioned under the nephrology category?,HD sessions picture,Chemo photo,Eye sketch,DNE photo,A,1
+CLAIM_051,CLAIM,What is the full form of LOS?,Level of Surgery,Length of Stay,List of Services,Line of Symptoms,B,1
+CLAIM_052,CLAIM,Ophthalmology is related to which organ of the human body?,Ear,Eye,Kidney,Liver,B,1
+CLAIM_053,CLAIM,What is the full form of ENT?,"Eye, Nose and Teeth","Ear, Nose and Throat","Ear, Nerve and Tongue","Eye, Neck and Throat",B,1
+CLAIM_054,CLAIM,How can we generally identify ORIF and CRIF procedures by observing the patient's surgical scar?,"ORIF usually has a longer surgical incision scar, whereas CRIF generally has smaller incision scars.","ORIF always has multiple small scars, whereas CRIF has one large scar.",Both ORIF and CRIF always have identical scars.,CRIF always has a larger scar than ORIF.,A,1
+CLAIM_055,CLAIM,Which of the following is listed as an orthopaedic fixation method?,Endoscopy,Angiography,Sonography,Plating,D,1
+CLAIM_056,CLAIM,Which of the following is mentioned as an orthopaedic procedure?,Endocrinology,Angiography,External Fixation,Ophthalmology,C,1
+CLAIM_057,CLAIM,Which supporting evidence is must be mandatory in orthopaedic after surgery?,Chemo photo,clinical notes,Scar and X-ray,HD chart,C,1
+CLAIM_058,CLAIM,What is the full form of ORIF and CRIF?,Open Reduction Internal Fracture & Closed Reduction Internal Fracture,Open Repair Internal Fracture & Closed Repair Internal Fracture,Orthopaedic Reduction Internal Fixation & Closed Repair Internal Fixation,Open Reduction Internal Fixation & Closed Reduction Internal Fixation,D,1
+CLAIM_059,CLAIM,Which photograph is mentioned under Medical Oncology?,Chemo photo,IVIG,DNE photo,Eye sketch,A,1
+CLAIM_060,CLAIM,What is Oncology?,Branch of medicine dealing with kidney diseases,Branch of medicine focused on the diagnosis and treatment of cancer,Branch of medicine dealing with bone fractures,Branch of medicine dealing with heart diseases,B,1
+CLAIM_061,CLAIM,What is the main purpose of Chemotherapy?,To remove tumours through surgery,To kill or inhibit rapidly dividing cells,To examine tissue under a microscope,To repair damaged bones,B,1
+CLAIM_062,CLAIM,Which document is mandatory for radiation treatment during claim processing?,Medication chart,HD Chart,Chemo Chart,Radiation Chart,D,1
+CLAIM_063,CLAIM,Which department primarily handles cancer treatment using medicines such as chemotherapy and immunotherapy?,Surgical Oncology,Medical Oncology,Radiation Oncology,Orthopaedics,B,1
+CLAIM_064,CLAIM,Who is the CEO of CS Creative Solution?,Mr. Umesh Devare,Mr. Vikas Deshmukh,Mr. Prasad Morje,Mr. Anand Dinde,B,1
+CLAIM_065,CLAIM,Who is the AGM (Assistant General Manager) of CS Creative Solution?,Mr. Vikas Deshmukh,Mrs.Tanuja Deshmukh,Mr. Sanjay Patil,Mr. Umesh Devere,D,1
+CLAIM_066,CLAIM,In which year did CS Creative Solution start its operations?,2010,2015,2013,2018,C,1
+CLAIM_067,CLAIM,What is the designation of Mrs. Tanuja Deshmukh at CS Creative Solution?,Director,Proprietor,General Manager,Assistant Manager,B,1
+CLAIM_068,CLAIM,What is the full name of the company?,Chhatrapati Shivaji’s Creative Solution,Creative Solutions Creative Services,Chhatrapati Shivaji Consultancy Services,Chhatrapati Shivaji Corporate Solutions,A,1
+CLAIM_069,CLAIM,What is the meaning of Deviation in medical claims?,Patient's diagnosis is incorrect.,The selected procedure code does not match the surgery actually performed.,Required documents are missing.,The claim amount is incorrect.,B,1
+CLAIM_070,CLAIM,What is the meaning of Deduction in medical claims?,Claim is completely rejected and not paid,The hospital has not submitted the required documents.,"The full approved package amount is not paid, and some amount is deducted.",The claim is pending for approval.,C,1
+CLAIM_071,CLAIM,What is the full form of CDP in the claim process?,Claim Document Processing,Claim Doctor Pending,Claim Department Pending,Claim Data Processing,B,1
+CLAIM_072,CLAIM,What is the meaning of DAMA Discharge?,Discharge After Medical Assessment,Discharge Against Medical Advice,Discharge After Medical Approval,Discharge At Medical Authority,B,1
+CLAIM_073,CLAIM,What is the age group generally considered for paediatric surgery?,0–5 Years,0–12 Years,0–18 Years,0–6 Years,C,1
+CLAIM_074,CLAIM,Chest X-ray is commonly used for the diagnosis and evaluation of which category of diseases?,Orthopaedic Diseases,Neurological Diseases,Respiratory Diseases,Ophthalmic Diseases,C,1
+CLAIM_075,CLAIM,Which documents are required for Peritoneal Dialysis(PD) claim submission?,Chest X-ray and ECG,"PD Book, PD photo,RFT ,",Only discharge summary,Only blood investigation reports,B,1
+CLAIM_076,CLAIM,What is the main role of MCO (Dr.) at the Head Office?,Patient Registration,Pre-Authorisation Approval,Discharge Clearance,Hospital Documentation,C,1
+CLAIM_077,CLAIM,How many dialysis sessions are allowed under one pre-authorisation in Maharashtra?,4 sessions,8 sessions,6 sessions,12 sessions,C,1
+CLAIM_078,CLAIM,IVIG chart is commonly used in which syndrome?,Nephrotic Syndrome,Guillain-Barré Syndrome (GBS),Down Syndrome,Cushing Syndrome,B,1
+CLAIM_079,CLAIM,Why is a barcode mandatory for orthopaedic implant documentation?,To identify the patient's age,To verify implant details and ensure traceability,To record the patient's blood group,To confirm the discharge date.,B,1
+CLAIM_080,CLAIM,Whose signature and stamp are mandatory on Orthopaedic OT Notes?,Only Operating Surgeon,Operating Surgeon and Anaesthetist,Operating Surgeon or Department stamp,Only Hospital Coordinator,C,1
+CLAIM_081,CLAIM,In which type of hospital are intra-operative images mandatory for claim documentation?,Government Hospital only,Both Government and Private Hospitals,Private Hospital,Neither Government nor Private Hospital,C,1
+CLAIM_082,CLAIM,"In private hospitals, should photographs of private body parts be taken during surgery for AB-PMJAY claim documentation?","Yes, in every surgery",Only for major surgeries,"No, procedures involving private parts are exempt from photographs",Only with the Patients permission,C,1
+CLAIM_083,CLAIM,Which medical category is related to heart diseases?,Nephrology,Neurology,Cardiology,Orthopaedics,C,1
+CLAIM_084,CLAIM,What is the full form of TPA in the health insurance sector?,Total Patient Assistance,Third Party Administrator,Treatment Process Authority,Third Payment Agency,B,1
+CLAIM_085,CLAIM,What is the name of the company software used at CS Creative Solution?,SIRA,Tally,SevaSetu,SAP,C,1
+CLAIM_086,CLAIM,What is a catheter commonly used for?,Measuring blood pressure,Draining urine or delivering fluids and medicines,Checking bone fractures,Measuring body temperature,B,1
+CLAIM_087,CLAIM,What is the most common reason for performing an amputation?,Diabetes-related complications or severe infection,Common cold,Eye infection,Gastric acidity,A,1
+CLAIM_088,CLAIM,Which two bones are present in the forearm?,Radius and Ulna,Femur and Tibia,Humerus and Fibula,Metacarpals and Phalanges,A,1
+CLAIM_089,CLAIM,Which surgery is performed to replace a damaged knee joint?,CABG,(TKR),Craniotomy,Appendectomy,B,1
+CLAIM_090,CLAIM,Which disease is associated with high blood sugar levels?,Diabetes Mellitus,Asthma,Arthritis,Tuberculosis,A,1
+CLAIM_091,CLAIM,Which medical speciality deals with the health and treatment of infants and children?,Cardiology,Neurology,Pediatrics,Orthopaedics,C,1
+CLAIM_092,CLAIM,Which organs are part of the urinary system?,Heart and lungs,Liver and pancreas,"Kidneys, ureters, urinary bladder and urethra",Brain and spinal cord,C,1
+CLAIM_093,CLAIM,What is the full form of DJ stent in urology?,Double Joint Stent,Direct Junction Stent,Distal Joint Stent,Double J Stent,D,1
+CLAIM_094,CLAIM,What does PCNL stand for?,Prostate Canal Nephrology Line,Partial Cystectomy Nephrology Laser,Percutaneous Nephrolithotomy,Permanent Kidney Nephrology Line,C,1
+CLAIM_095,CLAIM,What is the surgical procedure for removal of the appendix called?,Appendectomy,Cholecystectomy,Nephrectomy,Hysterectomy,A,1
+CLAIM_096,CLAIM,What should a claim reviewer verify when checking a General Surgery claim?,Only the patient's registration number,Only the medicine bill,Only the discharge date,"Diagnosis, procedure performed, OT notes and supporting reports",D,1
+CLAIM_097,CLAIM,Which instrument is commonly used to examine the abdominal cavity during laparoscopic surgery?,Stethoscope,Laparoscope,Otoscope,Ophthalmoscope,B,1
+CLAIM_098,CLAIM,What is the purpose of a pacemaker?,To remove fluid from the lungs,To regulate abnormal heart rhythms,To replace a heart valve,To remove blood clots from the legs,C,1
+CLAIM_099,CLAIM,"Which award was received by the Governor of Maharashtra for COVID-19 service, as mentioned in the PPT?",Shakti Award-2019,Covid Yoddha Award 2020,Mumbai Entrepreneur Pride Award-2020,Maharashtra Popular Brand Award-2022,B,1
+CLAIM_100,CLAIM,What is the main service area of CS Creative Solutions?,Private Banking Services,Government Health Scheme Hospital Implementation Services,Pharmaceutical Manufacturing,Medical Equipment Sales,B,1

@@ -51,16 +51,16 @@ const DEPARTMENTS: Record<DepartmentKey, DepartmentMeta> = {
     shortName: "CLAIM",
     subtitle: "CS Creative Solutions • Claims Processing, Investigation, Auditing & Policy Compliance",
     icon: FileCheck,
-    status: "PENDING",
-    statusText: "Questionnaire Coming Soon",
+    status: "ACTIVE",
+    statusText: "Active • Live Test",
     color: "from-amber-600 to-orange-700",
-    badgeBg: "bg-amber-500/10 text-amber-300 border-amber-500/20",
+    badgeBg: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
     questionsCount: "100 Questions (100 Marks)",
     highlights: [
       "100 Multiple-Choice Questions (1 Mark each, 100 Marks Total)",
-      "Claims Adjudication, Document Verification & Settlement Workflows",
-      "Strict 60-Minute Timed Evaluation Window with Proctoring",
-      "Questionnaire & candidate roster upload scheduled by HR",
+      "Strict 60-Minute Assessment Window with Automatic Timer",
+      "AB-PMJAY Portal, Claims Adjudication & Pre-Authorisation Workflows",
+      "Continuous privacy-first proctoring with full-screen enforcement",
     ],
   },
   TENDER: {
@@ -266,15 +266,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </div>
           </div>
 
-          {/* Department Notice Banner for Non-HR */}
-          {selectedDept !== "HR" && (
+          {/* Department Notice Banner for Inactive Departments */}
+          {currentMeta.status !== "ACTIVE" && (
             <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-200 text-amber-800 text-xs space-y-1 animate-fadeIn">
               <div className="flex items-center gap-2 font-semibold">
                 <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
                 <span>{currentMeta.label} Section</span>
               </div>
               <p className="text-[11px] leading-relaxed text-amber-700">
-                The question bank and candidate roster for the <strong>{currentMeta.shortName}</strong> department are scheduled for upload. HR candidates must switch to the <strong>HR</strong> section.
+                The question bank and candidate roster for the <strong>{currentMeta.shortName}</strong> department are scheduled for upload. Authorized candidates can switch to the active department tracks.
               </p>
             </div>
           )}

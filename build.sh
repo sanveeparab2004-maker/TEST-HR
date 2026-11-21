@@ -23,6 +23,9 @@ echo "=== [4/4] Ensuring Essential Question Bank, Official Roster & Admin Seed =
 if [ -f "data/HR_Team_Professional_Assessment.docx" ]; then
     python scripts/import_questions.py data/HR_Team_Professional_Assessment.docx || echo "Questions already loaded."
 fi
+if [ -f "data/Claim_Department_Question_Paper.docx" ]; then
+    python scripts/import_claim_questions.py data/Claim_Department_Question_Paper.docx || echo "Claim questions loaded."
+fi
 python -m scripts.load_real_roster || echo "Real roster loaded."
 python scripts/seed_admins.py || echo "Admins already seeded."
 python -m scripts.seed_department_assessments || echo "Department assessments seeded."

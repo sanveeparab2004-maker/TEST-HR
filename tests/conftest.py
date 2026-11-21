@@ -23,6 +23,15 @@ def setup_and_cleanup_test_db():
             except Exception as e:
                 print("Failed to load questions in test setup:", e)
 
+        claim_docx = os.path.join(os.path.dirname(__file__), "..", "data", "Claim_Department_Question_Paper.docx")
+        if os.path.exists(claim_docx):
+            try:
+                from scripts.import_claim_questions import parse_claim_docx, load_claim_into_db
+                claim_q = parse_claim_docx(claim_docx)
+                load_claim_into_db(claim_q)
+            except Exception as e:
+                print("Failed to load claim questions in test setup:", e)
+
         # Seed default assessment if missing
         a = session.query(Assessment).filter_by(id=1).first()
         if not a:

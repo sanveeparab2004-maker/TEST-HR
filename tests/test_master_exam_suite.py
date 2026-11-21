@@ -215,3 +215,51 @@ def test_comprehensive_excel_generation():
         assert excel_bytes.startswith(b"PK")  # Valid ZIP / XLSX signature
     finally:
         session.close()
+
+
+def test_claim_department_assessment_flow(exam_test_setup):
+    """Verifies login, 100-question paper delivery, and answer submission for the Claim Department."""
+    session = SessionLocal()
+    try:
+        req = DummyRequest()
+        resp = DummyResponse()
+
+        # Login candidate Charlie Rao for CLAIM department
+        auth_resp = login(LoginRequest(employee_code="CAND_SUITE_03", full_name="Charlie Rao", department="CLAIM"), req, resp, db=session)
+        assert auth_resp.role == "CANDIDATE"
+        assert auth_resp.attempt_id is not None
+
+        user = SessionUser(
+            employee_code="CAND_SUITE_03",
+            full_name="Charlie Rao",
+            role="CANDIDATE",
+            attempt_id=auth_resp.attempt_id
+        )
+
+        # Candidate gives consent
+        consent_resp = give_consent(ConsentRequest(consent=True), current_user=user, db=session)
+        assert "recorded" in consent_resp["message"].lower()
+
+        # Retrieve exam paper
+        exam = get_exam(current_user=user, db=session)
+        assert len(exam.questions) == 100
+        assert sum(q.marks for q in exam.questions) == 100
+
+        # Verify each question has exactly 4 options
+        for q in exam.questions:
+            assert len(q.options) == 4
+
+        # Save an answer for first question
+        first_q = exam.questions[0]
+        first_opt = first_q.options[0]
+        save_resp = save_answer(AnswerSaveRequest(question_id=first_q.id, option_id=first_opt.id), current_user=user, db=session)
+        assert save_resp.status.lower() == "saved"
+
+        # Submit exam
+        sub_resp = submit_exam(current_user=user, db=session)
+        assert sub_resp.status in ("SUBMITTED", "AUTO_SUBMITTED")
+        assert sub_resp.score is not None
+        assert sub_resp.result in ("PASS", "FAIL")
+    finally:
+        session.close()
+
