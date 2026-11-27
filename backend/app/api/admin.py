@@ -166,6 +166,12 @@ def get_all_results(
                 "time_taken_seconds": time_taken,
                 "started_at": att.started_at,
                 "submitted_at": att.submitted_at,
+                "candidate_profile": {
+                    "current_department": (att.device_info or {}).get("current_department"),
+                    "current_post": (att.device_info or {}).get("current_post"),
+                    "mobile_number": (att.device_info or {}).get("mobile_number"),
+                    "target_post": (att.device_info or {}).get("target_post"),
+                } if att.device_info else None,
             })
         else:
             results.append({
@@ -183,6 +189,7 @@ def get_all_results(
                 "time_taken_seconds": None,
                 "started_at": None,
                 "submitted_at": None,
+                "candidate_profile": None,
             })
 
     return results
@@ -271,7 +278,13 @@ def get_candidate_details(
         "submitted_at": attempt.submitted_at,
         "questions_review": review_list,
         "violations": viol_list,
-        "ai_summary": cached_ai
+        "ai_summary": cached_ai,
+        "candidate_profile": {
+            "current_department": (attempt.device_info or {}).get("current_department"),
+            "current_post": (attempt.device_info or {}).get("current_post"),
+            "mobile_number": (attempt.device_info or {}).get("mobile_number"),
+            "target_post": (attempt.device_info or {}).get("target_post"),
+        } if attempt.device_info else None
     }
 
 

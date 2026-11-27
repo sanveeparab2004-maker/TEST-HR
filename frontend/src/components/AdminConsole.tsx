@@ -21,6 +21,12 @@ interface ResultRow {
   time_taken_seconds: number | null;
   started_at: string | null;
   submitted_at: string | null;
+  candidate_profile?: {
+    current_department?: string;
+    current_post?: string;
+    mobile_number?: string;
+    target_post?: string;
+  } | null;
 }
 
 interface AdminDashboardStats {
@@ -811,6 +817,34 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ user, onLogout }) =>
                   <span>Download Scorecard PDF</span>
                 </a>
               </div>
+
+              {/* Ashtapradhan Profile & Target Post Details */}
+              {candidateDetails.candidate_profile && (
+                <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-200 text-xs space-y-2">
+                  <p className="font-bold text-purple-900 flex items-center gap-1.5 text-xs">
+                    <Sparkles className="w-4 h-4 text-purple-600" />
+                    <span>उमेदवाराची वैयक्तिक माहिती व निवडलेले पद</span>
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 text-slate-700 pt-1">
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">इच्छित पद (Target Post):</span>
+                      <strong className="text-purple-950 text-xs mt-0.5 block">{candidateDetails.candidate_profile.target_post || "N/A"}</strong>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">मोबाईल क्रमांक (Mobile):</span>
+                      <strong className="text-slate-900 text-xs mt-0.5 block">{candidateDetails.candidate_profile.mobile_number || "N/A"}</strong>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">सध्याचा विभाग:</span>
+                      <span className="text-slate-800 text-xs mt-0.5 block font-medium">{candidateDetails.candidate_profile.current_department || "N/A"}</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">सध्याचे पद:</span>
+                      <span className="text-slate-800 text-xs mt-0.5 block font-medium">{candidateDetails.candidate_profile.current_post || "N/A"}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
