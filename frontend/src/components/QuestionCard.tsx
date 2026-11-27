@@ -8,6 +8,7 @@ interface QuestionCardProps {
   isFlagged: boolean;
   onSelectOption: (optionId: number) => void;
   onToggleFlag: () => void;
+  totalQuestions?: number;
 }
 
 export const QuestionCard: React.FC<QuestionCardProps> = ({
@@ -16,6 +17,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   isFlagged,
   onSelectOption,
   onToggleFlag,
+  totalQuestions,
 }) => {
   // Keyboard shortcut listener: 1-4 or A-D to select, F to flag
   useEffect(() => {
@@ -60,7 +62,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             </span>
           </div>
           <h2 className="text-xs font-mono text-slate-400 mt-2">
-            QUESTION {question.displayNumber} OF 50
+            QUESTION {question.displayNumber} OF {totalQuestions || 100}
           </h2>
         </div>
 
@@ -79,7 +81,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       </div>
 
       {/* Question Stem */}
-      <div className="text-base sm:text-lg font-medium text-slate-900 leading-relaxed">
+      <div className="text-base sm:text-lg font-medium text-slate-900 leading-relaxed whitespace-pre-line">
         {question.stem}
       </div>
 
@@ -106,7 +108,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               >
                 {opt.label}
               </div>
-              <div className="flex-1 text-sm text-slate-800 pt-0.5 leading-normal">
+              <div className="flex-1 text-sm text-slate-800 pt-0.5 leading-normal whitespace-pre-line">
                 {opt.text}
               </div>
               <div className="shrink-0 pt-0.5">

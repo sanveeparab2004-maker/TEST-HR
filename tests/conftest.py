@@ -32,6 +32,15 @@ def setup_and_cleanup_test_db():
             except Exception as e:
                 print("Failed to load claim questions in test setup:", e)
 
+        ashtapradhan_csv = os.path.join(os.path.dirname(__file__), "..", "data", "ashtapradhan_questions.csv")
+        if os.path.exists(ashtapradhan_csv):
+            try:
+                from scripts.import_ashtapradhan_questions import load_ashtapradhan_questions, seed_ashtapradhan_into_db
+                ash_q = load_ashtapradhan_questions(ashtapradhan_csv)
+                seed_ashtapradhan_into_db(ash_q)
+            except Exception as e:
+                print("Failed to load ashtapradhan questions in test setup:", e)
+
         # Seed default assessment if missing
         a = session.query(Assessment).filter_by(id=1).first()
         if not a:

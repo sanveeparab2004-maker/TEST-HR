@@ -10,7 +10,7 @@ interface LoginPageProps {
   onLoginSuccess: (session: UserSession) => void;
 }
 
-type DepartmentKey = "HR" | "CLAIM" | "TENDER" | "ADMIN";
+type DepartmentKey = "HR" | "CLAIM" | "ASSESSMENT" | "TENDER" | "ADMIN";
 
 interface DepartmentMeta {
   key: DepartmentKey;
@@ -63,6 +63,24 @@ const DEPARTMENTS: Record<DepartmentKey, DepartmentMeta> = {
       "Continuous privacy-first proctoring with full-screen enforcement",
     ],
   },
+  ASSESSMENT: {
+    key: "ASSESSMENT",
+    label: "अष्टप्रधान – संचालक कार्यालय मूल्यांकन",
+    shortName: "ASSESSMENT",
+    subtitle: "CS Creative Solutions • अष्टप्रधान संचालक कार्यालय (Director's Office Assessment)",
+    icon: Sparkles,
+    status: "ACTIVE",
+    statusText: "Active • Live Test",
+    color: "from-purple-600 to-indigo-700",
+    badgeBg: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
+    questionsCount: "25 Questions (100 Marks)",
+    highlights: [
+      "25 Multiple-Choice Questions (4 Marks each, 100 Marks Total)",
+      "Strict 60-Minute Assessment Window with Automatic Timer",
+      "बुद्धिमत्ता, गणित, सामान्य ज्ञान, प्रत्यक्ष कामकाज व परिस्थितीजन्य निर्णयक्षमता",
+      "Continuous privacy-first proctoring with full-screen enforcement",
+    ],
+  },
   TENDER: {
     key: "TENDER",
     label: "Tender Team Assessment",
@@ -110,6 +128,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Ashtapradhan Candidate Profile Form State
+  const [currentDeptInput, setCurrentDeptInput] = useState("");
+  const [currentPostInput, setCurrentPostInput] = useState("");
+  const [mobileNumberInput, setMobileNumberInput] = useState("");
+  const [targetPostInput, setTargetPostInput] = useState("संचालक कार्यालय प्रमुख (Manager)");
+
   const currentMeta = DEPARTMENTS[selectedDept];
 
   const handleCodeBlur = async () => {
@@ -131,6 +155,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       return;
     }
 
+    if (selectedDept === "ASSESSMENT") {
+      if (!currentDeptInput.trim() || !currentPostInput.trim() || !mobileNumberInput.trim()) {
+        setError("कृपया वैयक्तिक माहितीतील सर्व आवश्यक रकाने भरा (सध्याचा विभाग, सध्याचे पद आणि मोबाईल क्रमांक).");
+        return;
+      }
+    }
+
     if (requiresPin && !pin.trim()) {
       setError("PIN is required for Staff access.");
       return;
@@ -142,7 +173,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         employeeCode.trim(),
         fullName.trim(),
         pin.trim() || undefined,
-        selectedDept
+        selectedDept,
+        selectedDept === "ASSESSMENT" ? {
+          current_department: currentDeptInput.trim(),
+          current_post: currentPostInput.trim(),
+          mobile_number: mobileNumberInput.trim(),
+          target_post: targetPostInput,
+        } : undefined
       );
       onLoginSuccess(session);
     } catch (err: any) {
@@ -229,7 +266,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
               Select Department Track
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
               {(Object.keys(DEPARTMENTS) as DepartmentKey[]).map((key) => {
                 const dept = DEPARTMENTS[key];
                 const Icon = dept.icon;
@@ -257,9 +294,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                         <span className="text-[9px] font-semibold text-slate-400">Soon</span>
                       )}
                     </div>
-                    <span className={`text-xs font-bold ${isSelected ? "text-brand-900" : "text-slate-800"}`}>
-                      {dept.shortName}
-                    </span>
+                    <div>
+                      <span className={`block text-xs font-bold leading-tight ${isSelected ? "text-brand-900" : "text-slate-800"}`}>
+                        {dept.shortName}
+                      </span>
+                      {key === "ASSESSMENT" && (
+                        <span className="block text-[9px] text-brand-600 font-semibold leading-none mt-0.5">
+                          अष्टप्रधान
+                        </span>
+                      )}
+                    </div>
                   </button>
                 );
               })}
@@ -329,6 +373,75 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               </div>
             </div>
 
+            {/* Ashtapradhan Candidate Profile Details (१. वैयक्तिक माहिती व २. पदाची निवड) */}
+            {selectedDept === "ASSESSMENT" && (
+              <div className="space-y-3.5 p-4 rounded-xl bg-purple-50/50 border border-purple-200/80 text-xs animate-fadeIn">
+                <div className="flex items-center gap-2 font-bold text-slate-800 pb-2 border-b border-purple-200">
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                  <span>१. उमेदवाराची वैयक्तिक माहिती व २. पदाची निवड</span>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">
+                    सध्याचा विभाग (Current Department) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="उदा. HR, Claim, Tender, Admin, Operations किंवा बाह्य"
+                    value={currentDeptInput}
+                    onChange={(e) => setCurrentDeptInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">
+                    सध्याचे पद (Current Post / Designation) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="उदा. Executive, Associate, Analyst, Lead"
+                    value={currentPostInput}
+                    onChange={(e) => setCurrentPostInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">
+                    मोबाईल क्रमांक (Mobile Number) *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="१० अंकी मोबाईल क्रमांक"
+                    value={mobileNumberInput}
+                    onChange={(e) => setMobileNumberInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none bg-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">
+                    तुम्हाला अष्टप्रधान – संचालक कार्यालयातील कोणत्या पदावर काम करण्याची इच्छा आहे? *
+                  </label>
+                  <select
+                    value={targetPostInput}
+                    onChange={(e) => setTargetPostInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-medium focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none bg-white text-slate-800"
+                  >
+                    <option value="संचालक कार्यालय प्रमुख (Manager)">संचालक कार्यालय प्रमुख (Manager)</option>
+                    <option value="संचालक कार्यालय उपप्रमुख (Deputy Manager)">संचालक कार्यालय उपप्रमुख (Deputy Manager)</option>
+                    <option value="Assistant Executive व स्वीय सहाय्यक">Assistant Executive व स्वीय सहाय्यक</option>
+                    <option value="MIS व Data Analyst">MIS व Data Analyst</option>
+                    <option value="Executive Assistant">Executive Assistant</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
             {requiresPin && (
               <div className="animate-fadeIn">
                 <div className="flex items-center justify-between mb-1.5">
@@ -364,7 +477,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               ) : (
                 <>
-                  <span>Begin {currentMeta.shortName} Assessment</span>
+                  <span>
+                    {selectedDept === "ASSESSMENT"
+                      ? "Begin अष्टप्रधान Assessment • परीक्षा सुरू करा"
+                      : `Begin ${currentMeta.shortName} Assessment`}
+                  </span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

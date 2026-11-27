@@ -379,6 +379,7 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
               isFlagged={!!flagged[currentQuestion.id]}
               onSelectOption={handleSelectOption}
               onToggleFlag={handleToggleFlag}
+              totalQuestions={examData.questions.length}
             />
           )}
 

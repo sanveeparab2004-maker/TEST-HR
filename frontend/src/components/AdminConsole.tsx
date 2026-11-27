@@ -469,6 +469,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ user, onLogout }) =>
                     <option value="ALL">All Departments</option>
                     <option value="HR">HR Department</option>
                     <option value="CLAIM">Claim Department</option>
+                    <option value="ASSESSMENT">अष्टप्रधान – संचालक कार्यालय</option>
                     <option value="TENDER">Tender Department</option>
                     <option value="ADMIN">Admin Department</option>
                   </select>
@@ -637,6 +638,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ user, onLogout }) =>
                   >
                     <option value="HR">HR Department</option>
                     <option value="CLAIM">Claim Department</option>
+                    <option value="ASSESSMENT">अष्टप्रधान – संचालक कार्यालय</option>
                     <option value="TENDER">Tender Department</option>
                     <option value="ADMIN">Admin Department</option>
                   </select>

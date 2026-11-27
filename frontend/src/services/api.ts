@@ -36,7 +36,13 @@ export const api = {
     employeeCode: string,
     fullName: string,
     pin?: string,
-    department: string = "HR"
+    department: string = "HR",
+    extraProfile?: {
+      current_department?: string;
+      current_post?: string;
+      mobile_number?: string;
+      target_post?: string;
+    }
   ): Promise<UserSession> {
     const deviceToken = getStoredDeviceToken();
     const deviceInfo = {
@@ -44,6 +50,7 @@ export const api = {
       platform: navigator.platform,
       screenWidth: window.screen.width,
       screenHeight: window.screen.height,
+      ...(extraProfile || {}),
     };
 
     const res = await fetch(`${API_BASE}/auth/login`, {
@@ -56,6 +63,10 @@ export const api = {
         department: department,
         device_token: deviceToken || undefined,
         device_info: deviceInfo,
+        current_department: extraProfile?.current_department,
+        current_post: extraProfile?.current_post,
+        mobile_number: extraProfile?.mobile_number,
+        target_post: extraProfile?.target_post,
       }),
     });
 

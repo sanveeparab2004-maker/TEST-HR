@@ -20,11 +20,20 @@ DEPARTMENTS = [
     {
         "code": "CLAIM",
         "title": "CS CREATIVE SOLUTIONS – CLAIM ASSESSMENT",
-        "status": "DRAFT",
+        "status": "OPEN",
         "duration_minutes": 60,
         "total_marks": 100,
         "marks_per_question": 1,
         "description": "Claims Adjudication, Verification, Policy Compliance & Investigation"
+    },
+    {
+        "code": "ASSESSMENT",
+        "title": "CS CREATIVE SOLUTIONS – अष्टप्रधान संचालक कार्यालय मूल्यांकन",
+        "status": "OPEN",
+        "duration_minutes": 60,
+        "total_marks": 100,
+        "marks_per_question": 4,
+        "description": "अष्टप्रधान – संचालक कार्यालय निवड व मूल्यांकन परीक्षा"
     },
     {
         "code": "TENDER",

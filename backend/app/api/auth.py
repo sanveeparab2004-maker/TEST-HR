@@ -47,17 +47,35 @@ def login(
 
     code = req.employee_code.strip().upper()
     entered_name = req.full_name.strip()
+    target_dept = (req.department or "HR").strip().upper()
 
     # Look up candidate in roster
     entry = db.query(Roster).filter_by(employee_code=code, is_active=True).first()
     if not entry:
-        record_failed_attempt(rate_key)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=GENERIC_AUTH_ERROR)
+        if target_dept in ("ASSESSMENT", "ASHTAPRADHAN"):
+            # Auto-enroll candidate for Ashtapradhan assessment
+            entry = Roster(
+                employee_code=code,
+                full_name=entered_name,
+                role="CANDIDATE",
+                department="ASSESSMENT",
+                is_active=True
+            )
+            db.add(entry)
+            db.commit()
+            db.refresh(entry)
+        else:
+            record_failed_attempt(rate_key)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=GENERIC_AUTH_ERROR)
 
     # Name validation (case-insensitive, whitespace normalized)
     if entry.full_name.strip().lower() != entered_name.lower():
-        record_failed_attempt(rate_key)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=GENERIC_AUTH_ERROR)
+        if target_dept in ("ASSESSMENT", "ASHTAPRADHAN") and entry.role == "CANDIDATE":
+            entry.full_name = entered_name
+            db.commit()
+        else:
+            record_failed_attempt(rate_key)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=GENERIC_AUTH_ERROR)
 
     # Role validation and PIN check for MONITOR/ADMIN
     if entry.role in ("MONITOR", "ADMIN"):
@@ -119,9 +137,15 @@ def login(
     all_assessments = db.query(Assessment).all()
     for a in all_assessments:
         dept_setting = (a.settings or {}).get("department", "").upper()
-        if dept_setting == target_dept or target_dept in a.title.upper():
-            assessment = a
-            break
+        short_setting = (a.settings or {}).get("short_code", "").upper()
+        if target_dept in ("ASSESSMENT", "ASHTAPRADHAN"):
+            if dept_setting in ("ASSESSMENT", "ASHTAPRADHAN") or short_setting in ("ASSESSMENT", "ASHTAPRADHAN") or "अष्टप्रधान" in a.title or "ASHTAPRADHAN" in a.title.upper():
+                assessment = a
+                break
+        else:
+            if dept_setting == target_dept or short_setting == target_dept or target_dept in a.title.upper():
+                assessment = a
+                break
 
     if not assessment:
         assessment = db.query(Assessment).filter_by(status="OPEN").first()
@@ -210,12 +234,22 @@ def login(
         # Strict 60-minute duration backed by DB
         deadline_at = now + timedelta(minutes=assessment.duration_minutes)
 
+        extra_info = dict(req.device_info or {})
+        if req.current_department:
+            extra_info["current_department"] = req.current_department
+        if req.current_post:
+            extra_info["current_post"] = req.current_post
+        if req.mobile_number:
+            extra_info["mobile_number"] = req.mobile_number
+        if req.target_post:
+            extra_info["target_post"] = req.target_post
+
         attempt = Attempt(
             assessment_id=assessment.id,
             employee_code=code,
             entered_name=entered_name,
             device_token_hash=device_token_hash,
-            device_info=req.device_info,
+            device_info=extra_info if extra_info else None,
             ip=ip,
             status="IN_PROGRESS",
             started_at=now,

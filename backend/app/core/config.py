@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     MAX_FACE_WARNINGS: int = int(os.getenv("MAX_FACE_WARNINGS", "5"))
     FACE_MISSING_SECONDS: int = int(os.getenv("FACE_MISSING_SECONDS", "3"))
     FACE_MATCH_THRESHOLD: float = float(os.getenv("FACE_MATCH_THRESHOLD", "0.5"))
-    DEPARTMENTS: List[str] = ["HR", "CLAIM", "TENDER", "ADMIN", "OPERATIONS", "ACCOUNTS"]
+    DEPARTMENTS: List[str] = ["HR", "CLAIM", "ASSESSMENT", "ASHTAPRADHAN", "TENDER", "ADMIN", "OPERATIONS", "ACCOUNTS"]
 
     # Google Sheets Integration
     GOOGLE_SHEET_ID: str = os.getenv("GOOGLE_SHEET_ID", "184qGjXRADe6RLzAlBy3LGk78xzkUa8GXeqkBOzWvkWI")

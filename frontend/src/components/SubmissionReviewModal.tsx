@@ -1,5 +1,5 @@
-import React from "react";
-import { AlertCircle, CheckCircle2, Flag, HelpCircle, X } from "lucide-react";
+import React, { useState } from "react";
+import { AlertCircle, CheckCircle2, Flag, HelpCircle, X, CheckSquare, Square } from "lucide-react";
 
 interface SubmissionReviewModalProps {
   isOpen: boolean;
@@ -22,6 +22,8 @@ export const SubmissionReviewModal: React.FC<SubmissionReviewModalProps> = ({
   remainingSeconds,
   loading,
 }) => {
+  const [declared, setDeclared] = useState(true);
+
   if (!isOpen) return null;
 
   const unansweredCount = totalQuestions - answeredCount;
@@ -84,6 +86,27 @@ export const SubmissionReviewModal: React.FC<SubmissionReviewModalProps> = ({
               </span>
             </div>
           )}
+
+          {/* Candidate Final Declaration (८. उमेदवाराची अंतिम घोषणा) */}
+          <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200/90 text-xs space-y-2">
+            <p className="font-semibold text-purple-950 leading-snug">
+              ८. उमेदवाराची अंतिम घोषणा:
+            </p>
+            <p className="text-[11px] text-purple-900 leading-relaxed italic">
+              "मी प्रमाणित करतो/करते की वरील सर्व माहिती खरी असून मी ही परीक्षा पूर्ण प्रामाणिकपणे दिली आहे."
+            </p>
+            <label className="flex items-center gap-2 cursor-pointer pt-1 select-none font-medium text-slate-800">
+              <input
+                type="checkbox"
+                checked={declared}
+                onChange={(e) => setDeclared(e.target.checked)}
+                className="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500 cursor-pointer"
+              />
+              <span className="text-xs font-semibold text-brand-900">
+                होय, मी सहमत आहे (I Agree & Confirm)
+              </span>
+            </label>
+          </div>
         </div>
 
         {/* Footer */}
@@ -97,8 +120,8 @@ export const SubmissionReviewModal: React.FC<SubmissionReviewModalProps> = ({
           </button>
           <button
             onClick={onConfirmSubmit}
-            disabled={loading}
-            className="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+            disabled={loading || !declared}
+            className="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-2 cursor-pointer"
           >
             {loading ? (
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
