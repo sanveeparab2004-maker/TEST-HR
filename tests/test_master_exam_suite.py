@@ -273,6 +273,16 @@ def test_ashtapradhan_assessment_flow(exam_test_setup):
         req = DummyRequest()
         resp = DummyResponse()
 
+        # Enroll in Roster for this test
+        session.add(Roster(
+            employee_code=cand_code,
+            full_name="Tanaji Malusare",
+            department="ASSESSMENT",
+            role="CANDIDATE",
+            is_active=True
+        ))
+        session.commit()
+
         # Login candidate for ASSESSMENT department with profile details
         auth_resp = login(
             LoginRequest(

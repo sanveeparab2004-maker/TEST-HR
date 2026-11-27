@@ -52,30 +52,49 @@ def login(
     # Look up candidate in roster
     entry = db.query(Roster).filter_by(employee_code=code, is_active=True).first()
     if not entry:
+        record_failed_attempt(rate_key)
         if target_dept in ("ASSESSMENT", "ASHTAPRADHAN"):
-            # Auto-enroll candidate for Ashtapradhan assessment
-            entry = Roster(
-                employee_code=code,
-                full_name=entered_name,
-                role="CANDIDATE",
-                department="ASSESSMENT",
-                is_active=True
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Employee Code {code} is not registered in the official exam roster. Contact HR."
             )
-            db.add(entry)
-            db.commit()
-            db.refresh(entry)
-        else:
-            record_failed_attempt(rate_key)
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=GENERIC_AUTH_ERROR)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=GENERIC_AUTH_ERROR)
 
-    # Name validation (case-insensitive, whitespace normalized)
-    if entry.full_name.strip().lower() != entered_name.lower():
-        if target_dept in ("ASSESSMENT", "ASHTAPRADHAN") and entry.role == "CANDIDATE":
-            entry.full_name = entered_name
-            db.commit()
-        else:
-            record_failed_attempt(rate_key)
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=GENERIC_AUTH_ERROR)
+    # Department validation: If candidate selected Ashtapradhan Assessment, enforce authorized roster
+    if target_dept in ("ASSESSMENT", "ASHTAPRADHAN"):
+        if entry.role not in ("ADMIN", "MONITOR"):
+            cand_dept = (entry.department or "").upper()
+            if "ASSESSMENT" not in cand_dept and "ASHTAPRADHAN" not in cand_dept:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"{entry.full_name} ({code}) is not enrolled for the अष्टप्रधान – संचालक कार्यालय Assessment. Only authorized candidates on the official list can take this exam."
+                )
+
+    # Name validation with flexible whitespace & token matching
+    def clean_name(s: str) -> str:
+        return " ".join(s.strip().lower().split())
+
+    entered_clean = clean_name(entered_name)
+    roster_clean = clean_name(entry.full_name)
+
+    names_match = False
+    if entered_clean == roster_clean:
+        names_match = True
+    else:
+        e_tokens = set(entered_clean.split())
+        r_tokens = set(roster_clean.split())
+        # Match if candidate entered first + last name (e.g. 'Nitin Shinde' matching 'Nitin Appaso Shinde')
+        if len(e_tokens) >= 2 and len(r_tokens) >= 2 and (e_tokens.issubset(r_tokens) or r_tokens.issubset(e_tokens)):
+            names_match = True
+
+    if not names_match:
+        record_failed_attempt(rate_key)
+        if target_dept in ("ASSESSMENT", "ASHTAPRADHAN"):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Name entered does not match the official roster record for {code}. Please enter your registered name ({entry.full_name})."
+            )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=GENERIC_AUTH_ERROR)
 
     # Role validation and PIN check for MONITOR/ADMIN
     if entry.role in ("MONITOR", "ADMIN"):
@@ -201,8 +220,8 @@ def login(
                 detail={"attempt_id": attempt.id, "ip": ip}
             ))
             db.commit()
-        elif not req.device_token or hash_device_token(req.device_token) != attempt.device_token_hash:
-            # Record unauthorized device attempt
+        elif req.device_token and hash_device_token(req.device_token) != attempt.device_token_hash:
+            # Another distinct device token explicitly provided -> reject to enforce single device
             db.add(Event(
                 attempt_id=attempt.id,
                 kind="DEVICE_LOCK_REJECTION",
@@ -213,6 +232,21 @@ def login(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="This employee code is already active on another device."
             )
+        elif not req.device_token:
+            # Reconnect resilience if token missing (e.g. browser cleared cache/reopened): re-issue and resume
+            raw_device_token = generate_device_token()
+            attempt.device_token_hash = hash_device_token(raw_device_token)
+            attempt.ip = ip
+            if req.device_info:
+                attempt.device_info = req.device_info
+            device_token_to_return = raw_device_token
+            db.add(AuditLog(
+                actor=code,
+                action="RECONNECT_RESUME",
+                entity="attempt",
+                detail={"attempt_id": attempt.id, "ip": ip}
+            ))
+            db.commit()
         else:
             # Resuming on same device with valid token
             device_token_to_return = req.device_token

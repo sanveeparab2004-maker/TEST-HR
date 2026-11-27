@@ -41,6 +41,13 @@ def setup_and_cleanup_test_db():
             except Exception as e:
                 print("Failed to load ashtapradhan questions in test setup:", e)
 
+        # Seed Ashtapradhan roster in test db
+        try:
+            from scripts.seed_ashtapradhan_roster import seed_ashtapradhan_roster
+            seed_ashtapradhan_roster()
+        except Exception as e:
+            print("Failed to seed ashtapradhan roster in test setup:", e)
+
         # Seed default assessment if missing
         a = session.query(Assessment).filter_by(id=1).first()
         if not a:

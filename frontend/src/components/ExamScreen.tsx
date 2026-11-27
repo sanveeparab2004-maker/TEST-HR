@@ -80,7 +80,7 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
         onRestart: (message, kind) => {
           setActiveWarning({ tier: "RESTART", kind, message, remaining: 0 });
           setWarningCount(0);
-          setAnswers({});
+          // Preserve saved answers so candidate never loses answered work
           setRemainingSeconds(3600);
           setCurrentIndex(0);
         },

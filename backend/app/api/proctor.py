@@ -91,8 +91,8 @@ def report_violation(
             attempt.started_at = now
             attempt.deadline_at = now + timedelta(minutes=settings.EXAM_DURATION_MINUTES)
 
-            # 2. Clear candidate saved answers
-            db.query(Answer).filter_by(attempt_id=attempt.id).delete()
+            # 2. Preserve candidate saved answers (Never delete candidate work)
+            # Answers are safely retained in DB mapped to question_id to prevent candidate data loss
 
             # 3. Reshuffle questions and options to a brand new order
             questions = db.query(Question).filter_by(assessment_id=attempt.assessment_id).all()

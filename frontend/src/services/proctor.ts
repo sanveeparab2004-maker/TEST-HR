@@ -376,8 +376,8 @@ export class ProctorEngine {
 
         const now = Date.now();
 
-        // 1. Check No Face (> 5s)
-        if (skinPixels < 350) {
+        // 1. Check No Face (> 5s) with tolerant lighting threshold
+        if (skinPixels < 180) {
           this.noFaceSecondsCount++;
           if (this.noFaceSecondsCount >= 5) {
             this.noFaceSecondsCount = 0;
@@ -386,19 +386,19 @@ export class ProctorEngine {
         } else {
           this.noFaceSecondsCount = 0;
 
-          // 2. Check Gaze / Looking Away (> 4s, 15s cooldown)
+          // 2. Check Gaze / Looking Away (> 5s, 20s cooldown)
           const avgX = totalX / skinPixels;
           const avgY = totalY / skinPixels;
 
           // If face centroid is significantly offset from center (160x120 -> center is 80, 60)
-          const isOffset = avgX < 35 || avgX > 125 || avgY < 20 || avgY > 100;
+          const isOffset = avgX < 25 || avgX > 135 || avgY < 15 || avgY > 105;
 
           if (isOffset && now > this.lookingAwayCooldownUntil) {
             this.lookingAwaySecondsCount++;
-            if (this.lookingAwaySecondsCount >= 4) {
+            if (this.lookingAwaySecondsCount >= 5) {
               this.lookingAwaySecondsCount = 0;
-              this.lookingAwayCooldownUntil = now + 15000; // 15-second cooldown
-              this.reportViolation("LOOKING_AWAY", { avgX, avgY, description: "Candidate looking away from screen > 4s" });
+              this.lookingAwayCooldownUntil = now + 20000; // 20-second cooldown
+              this.reportViolation("LOOKING_AWAY", { avgX, avgY, description: "Candidate looking away from screen > 5s" });
             }
           } else {
             this.lookingAwaySecondsCount = 0;
