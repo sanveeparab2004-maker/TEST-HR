@@ -197,7 +197,7 @@ def report_violation(
 
     message = ""
     if action == "RESTART":
-        message = "You have exceeded the maximum allowed violations (5). Your test has been restarted with a fresh timer and a new question order. All previous answers have been cleared."
+        message = "You have exceeded the maximum allowed violations (5). Your test has been restarted with a fresh timer. Your saved answers remain safely preserved."
     elif tier in ("WARNING_1", "WARNING_2", "WARNING_3"):
         remaining = 3 - warn_num
         message = f"Warning {warn_num}/3: Security incident detected ({req.kind}). You have {remaining} warning(s) remaining."

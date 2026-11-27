@@ -51,6 +51,7 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
     kind: string;
     message: string;
     remaining: number;
+    warningNumber: number;
   } | null>(null);
   const [postFinalToast, setPostFinalToast] = useState<string | null>(null);
   const [proctorMessage, setProctorMessage] = useState<{ text: string; sender: string } | null>(null);
@@ -73,12 +74,13 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
   useEffect(() => {
     if (stream) {
       const engine = new ProctorEngine({
-        onWarning: (tier, message, kind, remaining) => {
-          setActiveWarning({ tier, kind, message, remaining });
-          setWarningCount((prev) => prev + 1);
+        onWarning: (tier, message, kind, remaining, warnNum) => {
+          const calculatedNum = warnNum ?? (5 - remaining);
+          setActiveWarning({ tier, kind, message, remaining, warningNumber: calculatedNum });
+          setWarningCount(calculatedNum);
         },
         onRestart: (message, kind) => {
-          setActiveWarning({ tier: "RESTART", kind, message, remaining: 0 });
+          setActiveWarning({ tier: "RESTART", kind, message, remaining: 0, warningNumber: 6 });
           setWarningCount(0);
           // Preserve saved answers so candidate never loses answered work
           setRemainingSeconds(3600);
@@ -502,10 +504,14 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
           kind={activeWarning.kind}
           message={activeWarning.message}
           remainingWarnings={activeWarning.remaining}
+          warningNumber={activeWarning.warningNumber}
           isRestart={activeWarning.tier === "RESTART"}
           onAcknowledge={() => {
             const wasRestart = activeWarning.tier === "RESTART";
             setActiveWarning(null);
+            if (proctorEngineRef.current) {
+              proctorEngineRef.current.resetViolationCooldown();
+            }
             if (wasRestart) {
               window.location.reload();
             }

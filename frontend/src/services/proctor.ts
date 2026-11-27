@@ -1,7 +1,7 @@
 import { api } from "./api";
 
 export interface ProctorCallbacks {
-  onWarning: (tier: string, message: string, kind: string, remainingWarnings: number) => void;
+  onWarning: (tier: string, message: string, kind: string, remainingWarnings: number, warningNumber?: number) => void;
   onPostFinalNoted: (kind: string, message: string) => void;
   onRestart?: (message: string, kind: string) => void;
   onCameraOff: (isOff: boolean) => void;
@@ -227,14 +227,22 @@ export class ProctorEngine {
     }
   }
 
+  public resetViolationCooldown(kind?: string) {
+    if (kind) {
+      delete this.lastViolationTime[kind];
+    } else {
+      this.lastViolationTime = {};
+    }
+  }
+
   // --- Send Violation Report ---
   private async reportViolation(kind: string, detail: Record<string, any> = {}) {
     if (!this.isRunning) return;
 
-    // Check 5-second debounce for duplicate events of same kind
+    // Check 2.5-second debounce for duplicate events of same kind to avoid flood while remaining responsive
     const now = Date.now();
     const lastTime = this.lastViolationTime[kind] || 0;
-    if (now - lastTime < 5000) return;
+    if (now - lastTime < 2500) return;
     this.lastViolationTime[kind] = now;
 
     const snapshot = this.captureSnapshot();
@@ -260,14 +268,15 @@ export class ProctorEngine {
         if (this.callbacks.onRestart) {
           this.callbacks.onRestart(data.message || "Test restarted due to exceeding 5 warnings.", kind);
         } else {
-          this.callbacks.onWarning("RESTART", data.message, kind, 0);
+          this.callbacks.onWarning("RESTART", data.message, kind, 0, 6);
         }
         return;
       }
 
       if (["WARNING_1", "WARNING_2", "WARNING_3", "FINAL_WARNING", "POST_FINAL_NOTED"].includes(data.warning_tier)) {
-        const remaining = Math.max(0, 5 - (data.warning_count || 1));
-        this.callbacks.onWarning(data.warning_tier, data.message, kind, remaining);
+        const warnNum = data.warning_count || 1;
+        const remaining = Math.max(0, 5 - warnNum);
+        this.callbacks.onWarning(data.warning_tier, data.message, kind, remaining, warnNum);
       }
     } catch {}
   }
@@ -275,16 +284,17 @@ export class ProctorEngine {
   // --- Event Handlers ---
   private handleVisibilityChange = () => {
     if (document.hidden) {
-      this.reportViolation("TAB_SWITCH", { description: "Candidate switched browser tab" });
+      // Immediate violation trigger on tab switch / minimize
+      this.reportViolation("TAB_SWITCH", { description: "Candidate switched away from browser tab" });
     }
   };
 
   private handleWindowBlur = () => {
-    // Check if blur persists > 2s to ignore rapid OS micro-blurs
+    // Detect window unfocus / alt-tab with quick 600ms debounce
     if (this.windowBlurTimer) clearTimeout(this.windowBlurTimer);
     this.windowBlurTimer = setTimeout(() => {
-      this.reportViolation("WINDOW_BLUR", { description: "Window lost focus for > 2 seconds" });
-    }, 2000);
+      this.reportViolation("TAB_SWITCH", { description: "Candidate unfocused or switched window" });
+    }, 600);
   };
 
   private handleWindowFocus = () => {
@@ -330,7 +340,7 @@ export class ProctorEngine {
     this.reportViolation("CAMERA_OFF", { description: "Camera track interrupted or revoked" });
   };
 
-  // --- In-Browser Lightweight Face & Gaze Heuristics (1-second loop) ---
+  // --- In-Browser Face & Gaze Heuristics (1-second analysis loop) ---
   private startFaceAnalysis() {
     this.faceAnalysisInterval = setInterval(() => {
       // Periodic check: camera track must remain live and active
@@ -338,6 +348,12 @@ export class ProctorEngine {
       const isLive = !!(vTrack && vTrack.readyState === "live" && !vTrack.muted && vTrack.enabled);
       if (!isLive) {
         this.callbacks.onCameraOff(true);
+        this.noFaceSecondsCount++;
+        // If camera track is off or muted for 3 seconds, trigger warning
+        if (this.noFaceSecondsCount >= 3) {
+          this.noFaceSecondsCount = 0;
+          this.reportViolation("CAMERA_OFF", { description: "Camera feed disabled, muted, or covered for > 3s" });
+        }
         return;
       } else {
         this.callbacks.onCameraOff(false);
@@ -355,6 +371,7 @@ export class ProctorEngine {
 
         // Centroid & Skin-tone detection
         let skinPixels = 0;
+        let centerSkinPixels = 0;
         let totalX = 0;
         let totalY = 0;
 
@@ -363,41 +380,53 @@ export class ProctorEngine {
           const g = data[i + 1];
           const b = data[i + 2];
 
-          // Normalized skin tone thresholding
-          if (r > 60 && g > 40 && b > 20 && r > g && r > b && Math.abs(r - g) > 15) {
+          // Normalized skin tone thresholding in RGB space
+          if (r > 60 && g > 40 && b > 20 && r > g && r > b && (r - g) > 12) {
             skinPixels++;
             const pixelIndex = i / 4;
             const x = pixelIndex % 160;
             const y = Math.floor(pixelIndex / 160);
             totalX += x;
             totalY += y;
+
+            // Central 60% viewport where candidate's face naturally sits
+            if (x >= 25 && x <= 135 && y >= 15 && y <= 105) {
+              centerSkinPixels++;
+            }
           }
         }
 
         const now = Date.now();
 
-        // 1. Check No Face (> 5s) with tolerant lighting threshold
-        if (skinPixels < 180) {
+        // Face is present when sufficient skin pixels are detected in central region
+        const isFacePresent = skinPixels >= 350 && centerSkinPixels >= 200;
+
+        // 1. Check No Face (> 3s threshold)
+        if (!isFacePresent) {
           this.noFaceSecondsCount++;
-          if (this.noFaceSecondsCount >= 5) {
+          if (this.noFaceSecondsCount >= 3) {
             this.noFaceSecondsCount = 0;
-            this.reportViolation("NO_FACE", { skinPixelCount: skinPixels, description: "No face detected in camera for > 5s" });
+            this.reportViolation("NO_FACE", {
+              skinPixelCount: skinPixels,
+              centerSkinPixels: centerSkinPixels,
+              description: "Face not detected in camera frame for > 3s"
+            });
           }
         } else {
           this.noFaceSecondsCount = 0;
 
-          // 2. Check Gaze / Looking Away (> 5s, 20s cooldown)
+          // 2. Check Gaze / Looking Away (> 5s, 15s cooldown)
           const avgX = totalX / skinPixels;
           const avgY = totalY / skinPixels;
 
           // If face centroid is significantly offset from center (160x120 -> center is 80, 60)
-          const isOffset = avgX < 25 || avgX > 135 || avgY < 15 || avgY > 105;
+          const isOffset = avgX < 20 || avgX > 140 || avgY < 12 || avgY > 108;
 
           if (isOffset && now > this.lookingAwayCooldownUntil) {
             this.lookingAwaySecondsCount++;
             if (this.lookingAwaySecondsCount >= 5) {
               this.lookingAwaySecondsCount = 0;
-              this.lookingAwayCooldownUntil = now + 20000; // 20-second cooldown
+              this.lookingAwayCooldownUntil = now + 15000; // 15-second cooldown
               this.reportViolation("LOOKING_AWAY", { avgX, avgY, description: "Candidate looking away from screen > 5s" });
             }
           } else {
