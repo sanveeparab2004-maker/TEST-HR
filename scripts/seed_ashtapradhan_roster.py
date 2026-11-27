@@ -66,6 +66,23 @@ def seed_ashtapradhan_roster():
         print("=" * 60)
         print(f"Total authorized candidates found: {len(candidates)}")
 
+        # Ensure attempts table columns exist on SQLite
+        try:
+            from sqlalchemy import text
+            with session.connection() as conn:
+                for col, col_type in [
+                    ("restart_count", "SMALLINT DEFAULT 0"),
+                    ("tab_switch_total", "SMALLINT DEFAULT 0"),
+                    ("face_violation_total", "SMALLINT DEFAULT 0"),
+                ]:
+                    try:
+                        conn.execute(text(f"ALTER TABLE attempts ADD COLUMN {col} {col_type}"))
+                        conn.commit()
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
         # 1. Clear any prior test attempts for these candidates (guarantee fresh start)
         prior_attempts = session.query(Attempt).filter(Attempt.employee_code.in_(cand_codes)).all()
         if prior_attempts:

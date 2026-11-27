@@ -63,8 +63,20 @@ def check_database_connection(retries: int = 3, backoff: float = 1.0) -> bool:
 
 
 def run_advisory_lock_migration():
-    """Run migrations with advisory lock on PostgreSQL to avoid race conditions."""
+    """Run migrations with advisory lock on PostgreSQL to avoid race conditions, or ensure SQLite schema."""
+    Base.metadata.create_all(bind=engine)
     if is_sqlite:
+        with engine.connect() as conn:
+            for col, col_type in [
+                ("restart_count", "SMALLINT DEFAULT 0"),
+                ("tab_switch_total", "SMALLINT DEFAULT 0"),
+                ("face_violation_total", "SMALLINT DEFAULT 0"),
+            ]:
+                try:
+                    conn.execute(text(f"ALTER TABLE attempts ADD COLUMN {col} {col_type}"))
+                    conn.commit()
+                except Exception:
+                    pass
         return
     ADVISORY_LOCK_ID = 892374823
     try:

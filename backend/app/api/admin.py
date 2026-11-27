@@ -37,8 +37,18 @@ def seed_ashtapradhan_endpoint(
     current_user: SessionUser = Depends(require_role("ADMIN")),
     db: Session = Depends(get_db)
 ):
+    import os
     import traceback
+    from sqlalchemy import text
     result = {"questions": "pending", "roster": "pending"}
+
+    # Ensure attempts table has restart_count if SQLite
+    try:
+        db.execute(text("ALTER TABLE attempts ADD COLUMN restart_count SMALLINT DEFAULT 0"))
+        db.commit()
+    except Exception:
+        pass
+
     try:
         from scripts.import_ashtapradhan_questions import load_ashtapradhan_questions, seed_ashtapradhan_into_db
         csv_file = os.path.join("data", "ashtapradhan_questions.csv")
