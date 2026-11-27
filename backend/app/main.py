@@ -21,6 +21,17 @@ async def lifespan(app: FastAPI):
     db_ok = check_database_connection(retries=3, backoff=1.5)
     if db_ok:
         run_advisory_lock_migration()
+        # Ensure Ashtapradhan questions and roster are seeded
+        try:
+            from scripts.import_ashtapradhan_questions import main as seed_ash_questions
+            seed_ash_questions()
+        except Exception as e:
+            print("[Lifespan] Ashtapradhan questions notice:", e)
+        try:
+            from scripts.seed_ashtapradhan_roster import seed_ashtapradhan_roster
+            seed_ashtapradhan_roster()
+        except Exception as e:
+            print("[Lifespan] Ashtapradhan roster notice:", e)
         # Initialize Google Sheet structure & formatting safely
         try:
             from backend.app.services.sheets_service import ensure_sheet_tabs_and_headers

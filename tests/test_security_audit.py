@@ -17,9 +17,11 @@ def test_candidate_api_zero_answer_leakage():
     created_temp = False
     att = None
     try:
-        att = session.query(Attempt).filter_by(status="IN_PROGRESS").first()
-        if not att:
-            att = session.query(Attempt).first()
+        now = datetime.now(timezone.utc)
+        att = session.query(Attempt).filter(
+            Attempt.status == "IN_PROGRESS",
+            Attempt.deadline_at > now
+        ).first()
         if not att:
             asmt = session.query(Assessment).first()
             questions = session.query(Question).filter_by(assessment_id=asmt.id).order_by(Question.id).all()
@@ -29,8 +31,8 @@ def test_candidate_api_zero_answer_leakage():
                 entered_name="Durvesh Parab",
                 device_token_hash="audit_test_hash",
                 status="IN_PROGRESS",
-                started_at=datetime.now(timezone.utc),
-                deadline_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+                started_at=now,
+                deadline_at=now + timedelta(minutes=60),
                 question_order=[q.id for q in questions],
                 option_order={}
             )

@@ -11,6 +11,22 @@ elif [ -f ".venv/bin/activate" ]; then
     source .venv/bin/activate
 fi
 
+# Locate python runtime
+PYTHON_CMD="python"
+if [ -f "/opt/render/project/src/.venv/bin/python" ]; then
+    PYTHON_CMD="/opt/render/project/src/.venv/bin/python"
+elif command -v python3 >/dev/null 2>&1; then
+    PYTHON_CMD="python3"
+fi
+
+echo "=== Running Database Migrations & Seeds on Startup ==="
+$PYTHON_CMD -m alembic upgrade head || true
+$PYTHON_CMD -m scripts.load_real_roster || true
+$PYTHON_CMD -m scripts.import_ashtapradhan_questions || true
+$PYTHON_CMD -m scripts.seed_ashtapradhan_roster || true
+$PYTHON_CMD scripts/seed_admins.py || true
+$PYTHON_CMD -m scripts.seed_department_assessments || true
+
 # Locate and launch uvicorn
 if [ -f "/opt/render/project/src/.venv/bin/uvicorn" ]; then
     exec /opt/render/project/src/.venv/bin/uvicorn backend.app.main:app --host 0.0.0.0 --port "$PORT"
