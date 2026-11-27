@@ -32,6 +32,21 @@ def compute_integrity_status(warning_count: int, violation_count: int, has_confi
     return "Clean"
 
 
+@router.post("/seed-ashtapradhan")
+def seed_ashtapradhan_endpoint(
+    current_user: SessionUser = Depends(require_role("ADMIN")),
+    db: Session = Depends(get_db)
+):
+    from scripts.seed_ashtapradhan_roster import seed_ashtapradhan_roster
+    from scripts.import_ashtapradhan_questions import main as seed_ash_questions
+    try:
+        seed_ash_questions()
+    except Exception as e:
+        print("Question seed error:", e)
+    seed_ashtapradhan_roster()
+    return {"status": "ok", "message": "Ashtapradhan roster and questionnaire seeded successfully"}
+
+
 @router.get("/dashboard")
 def get_admin_dashboard(
     current_user: SessionUser = Depends(require_role("ADMIN")),
