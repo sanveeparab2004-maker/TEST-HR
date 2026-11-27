@@ -67,17 +67,44 @@ def run_advisory_lock_migration():
     Base.metadata.create_all(bind=engine)
     if is_sqlite:
         with engine.begin() as conn:
-            column_patches = [
-                ("questions", "department", "VARCHAR(64) DEFAULT 'HR'"),
-                ("attempts", "restart_count", "SMALLINT DEFAULT 0"),
-                ("attempts", "tab_switch_total", "SMALLINT DEFAULT 0"),
-                ("attempts", "face_violation_total", "SMALLINT DEFAULT 0"),
-            ]
-            for tbl, col, col_def in column_patches:
-                try:
-                    conn.execute(text(f"ALTER TABLE {tbl} ADD COLUMN {col} {col_def}"))
-                except Exception:
-                    pass
+            # Check attempts table
+            try:
+                cursor = conn.execute(text("PRAGMA table_info(attempts)"))
+                existing_cols = {row[1] for row in cursor.fetchall()}
+                missing_patches = {
+                    "device_info": "TEXT",
+                    "consent_at": "DATETIME",
+                    "submitted_at": "DATETIME",
+                    "restart_count": "SMALLINT DEFAULT 0",
+                    "tab_switch_total": "SMALLINT DEFAULT 0",
+                    "face_violation_total": "SMALLINT DEFAULT 0",
+                    "sheet_synced": "BOOLEAN DEFAULT 0",
+                    "sheet_synced_at": "DATETIME",
+                    "score": "SMALLINT",
+                    "percentage": "NUMERIC(5, 2)",
+                    "band": "TEXT",
+                    "section_scores": "TEXT",
+                }
+                for col, col_def in missing_patches.items():
+                    if col not in existing_cols:
+                        try:
+                            conn.execute(text(f"ALTER TABLE attempts ADD COLUMN {col} {col_def}"))
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+
+            # Check questions table
+            try:
+                cursor = conn.execute(text("PRAGMA table_info(questions)"))
+                existing_q_cols = {row[1] for row in cursor.fetchall()}
+                if "department" not in existing_q_cols:
+                    try:
+                        conn.execute(text("ALTER TABLE questions ADD COLUMN department VARCHAR(64) DEFAULT 'HR'"))
+                    except Exception:
+                        pass
+            except Exception:
+                pass
         return
     ADVISORY_LOCK_ID = 892374823
     try:

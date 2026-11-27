@@ -39,22 +39,11 @@ def seed_ashtapradhan_endpoint(
 ):
     import os
     import traceback
-    from sqlalchemy import text
-    from backend.app.core.database import engine
+    from backend.app.core.database import run_advisory_lock_migration
     result = {"questions": "pending", "roster": "pending"}
 
-    # Ensure attempts & questions table schema updates for SQLite
-    with engine.begin() as conn:
-        for tbl, col, col_def in [
-            ("questions", "department", "VARCHAR(64) DEFAULT 'HR'"),
-            ("attempts", "restart_count", "SMALLINT DEFAULT 0"),
-            ("attempts", "tab_switch_total", "SMALLINT DEFAULT 0"),
-            ("attempts", "face_violation_total", "SMALLINT DEFAULT 0"),
-        ]:
-            try:
-                conn.execute(text(f"ALTER TABLE {tbl} ADD COLUMN {col} {col_def}"))
-            except Exception:
-                pass
+    # Run auto-migration for SQLite missing columns
+    run_advisory_lock_migration()
 
     try:
         from scripts.import_ashtapradhan_questions import load_ashtapradhan_questions, seed_ashtapradhan_into_db
