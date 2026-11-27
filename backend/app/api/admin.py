@@ -37,14 +37,25 @@ def seed_ashtapradhan_endpoint(
     current_user: SessionUser = Depends(require_role("ADMIN")),
     db: Session = Depends(get_db)
 ):
-    from scripts.seed_ashtapradhan_roster import seed_ashtapradhan_roster
-    from scripts.import_ashtapradhan_questions import main as seed_ash_questions
+    import traceback
+    result = {"questions": "pending", "roster": "pending"}
     try:
-        seed_ash_questions()
+        from scripts.import_ashtapradhan_questions import load_ashtapradhan_questions, seed_ashtapradhan_into_db
+        csv_file = os.path.join("data", "ashtapradhan_questions.csv")
+        qs = load_ashtapradhan_questions(csv_file)
+        seed_ashtapradhan_into_db(qs)
+        result["questions"] = f"Loaded {len(qs)} questions"
     except Exception as e:
-        print("Question seed error:", e)
-    seed_ashtapradhan_roster()
-    return {"status": "ok", "message": "Ashtapradhan roster and questionnaire seeded successfully"}
+        result["questions_error"] = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
+
+    try:
+        from scripts.seed_ashtapradhan_roster import seed_ashtapradhan_roster
+        seed_ashtapradhan_roster()
+        result["roster"] = "Seeded successfully"
+    except Exception as e:
+        result["roster_error"] = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
+
+    return {"status": "ok", "details": result}
 
 
 @router.get("/dashboard")

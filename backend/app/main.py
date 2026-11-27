@@ -23,8 +23,11 @@ async def lifespan(app: FastAPI):
         run_advisory_lock_migration()
         # Ensure Ashtapradhan questions and roster are seeded
         try:
-            from scripts.import_ashtapradhan_questions import main as seed_ash_questions
-            seed_ash_questions()
+            from scripts.import_ashtapradhan_questions import load_ashtapradhan_questions, seed_ashtapradhan_into_db
+            csv_path = os.path.join("data", "ashtapradhan_questions.csv")
+            if os.path.exists(csv_path):
+                ash_qs = load_ashtapradhan_questions(csv_path)
+                seed_ashtapradhan_into_db(ash_qs)
         except Exception as e:
             print("[Lifespan] Ashtapradhan questions notice:", e)
         try:
