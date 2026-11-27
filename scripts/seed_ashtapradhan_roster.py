@@ -56,6 +56,24 @@ def load_candidates_from_excel(xlsx_path: str = "data/ashtapradhan_roster.xlsx")
 
 
 def seed_ashtapradhan_roster():
+    # Ensure attempts table columns exist on SQLite before opening session
+    try:
+        from sqlalchemy import text
+        from backend.app.core.database import engine
+        with engine.begin() as conn:
+            for tbl, col, col_def in [
+                ("questions", "department", "VARCHAR(64) DEFAULT 'HR'"),
+                ("attempts", "restart_count", "SMALLINT DEFAULT 0"),
+                ("attempts", "tab_switch_total", "SMALLINT DEFAULT 0"),
+                ("attempts", "face_violation_total", "SMALLINT DEFAULT 0"),
+            ]:
+                try:
+                    conn.execute(text(f"ALTER TABLE {tbl} ADD COLUMN {col} {col_def}"))
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
     session = SessionLocal()
     try:
         candidates = load_candidates_from_excel()
@@ -65,23 +83,6 @@ def seed_ashtapradhan_roster():
         print("SEEDING ASHTAPRADHAN OFFICIAL CANDIDATE ROSTER")
         print("=" * 60)
         print(f"Total authorized candidates found: {len(candidates)}")
-
-        # Ensure attempts table columns exist on SQLite
-        try:
-            from sqlalchemy import text
-            with session.connection() as conn:
-                for col, col_type in [
-                    ("restart_count", "SMALLINT DEFAULT 0"),
-                    ("tab_switch_total", "SMALLINT DEFAULT 0"),
-                    ("face_violation_total", "SMALLINT DEFAULT 0"),
-                ]:
-                    try:
-                        conn.execute(text(f"ALTER TABLE attempts ADD COLUMN {col} {col_type}"))
-                        conn.commit()
-                    except Exception:
-                        pass
-        except Exception:
-            pass
 
         # 1. Clear any prior test attempts for these candidates (guarantee fresh start)
         prior_attempts = session.query(Attempt).filter(Attempt.employee_code.in_(cand_codes)).all()

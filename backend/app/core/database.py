@@ -66,15 +66,16 @@ def run_advisory_lock_migration():
     """Run migrations with advisory lock on PostgreSQL to avoid race conditions, or ensure SQLite schema."""
     Base.metadata.create_all(bind=engine)
     if is_sqlite:
-        with engine.connect() as conn:
-            for col, col_type in [
-                ("restart_count", "SMALLINT DEFAULT 0"),
-                ("tab_switch_total", "SMALLINT DEFAULT 0"),
-                ("face_violation_total", "SMALLINT DEFAULT 0"),
-            ]:
+        with engine.begin() as conn:
+            column_patches = [
+                ("questions", "department", "VARCHAR(64) DEFAULT 'HR'"),
+                ("attempts", "restart_count", "SMALLINT DEFAULT 0"),
+                ("attempts", "tab_switch_total", "SMALLINT DEFAULT 0"),
+                ("attempts", "face_violation_total", "SMALLINT DEFAULT 0"),
+            ]
+            for tbl, col, col_def in column_patches:
                 try:
-                    conn.execute(text(f"ALTER TABLE attempts ADD COLUMN {col} {col_type}"))
-                    conn.commit()
+                    conn.execute(text(f"ALTER TABLE {tbl} ADD COLUMN {col} {col_def}"))
                 except Exception:
                     pass
         return
