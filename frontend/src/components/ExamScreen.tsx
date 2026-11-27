@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Send, Clock, WifiOff, Check, AlertCircle, CameraOff, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Send, Clock, WifiOff, Check, AlertCircle, CameraOff, RefreshCw, Globe } from "lucide-react";
 import { CandidateQuestion, ExamData, UserSession } from "../types";
 import { QuestionCard } from "./QuestionCard";
 import { QuestionPalette } from "./QuestionPalette";
@@ -8,12 +8,15 @@ import { SubmissionReviewModal } from "./SubmissionReviewModal";
 import { WarningModal } from "./WarningModal";
 import { ProctorEngine } from "../services/proctor";
 import { api } from "../services/api";
+import { Language, getInitialLanguage, setStoredLanguage } from "../utils/language";
 
 interface ExamScreenProps {
   user: UserSession;
   examData: ExamData;
   stream: MediaStream | null;
   onSubmitted: () => void;
+  language?: Language;
+  onLanguageChange?: (lang: Language) => void;
 }
 
 export const ExamScreen: React.FC<ExamScreenProps> = ({
@@ -21,7 +24,21 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
   examData,
   stream,
   onSubmitted,
+  language,
+  onLanguageChange,
 }) => {
+  const [localLang, setLocalLang] = useState<Language>(getInitialLanguage());
+  const currentLanguage = language || localLang;
+
+  const handleSelectLanguage = (l: Language) => {
+    if (onLanguageChange) {
+      onLanguageChange(l);
+    } else {
+      setLocalLang(l);
+      setStoredLanguage(l);
+    }
+  };
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number | null>>(examData.answers || {});
   const [flagged, setFlagged] = useState<Record<string, boolean>>(examData.flagged || {});
@@ -276,10 +293,55 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
             </div>
           </div>
 
-          {/* Countdown Clock (Backend-Authoritative) */}
-          <div className="flex items-center gap-4">
+          {/* Right Controls: Language Selector + Timer + Submit */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Language Selector (मराठी | English | Both) */}
+            <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200">
+              <div className="flex items-center gap-1 px-1.5 text-slate-500 hidden sm:flex">
+                <Globe className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-semibold">भाषा:</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleSelectLanguage("MR")}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  currentLanguage === "MR"
+                    ? "bg-brand-600 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+                title="फक्त मराठी (Marathi)"
+              >
+                मराठी
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectLanguage("EN")}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  currentLanguage === "EN"
+                    ? "bg-brand-600 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+                title="Only English"
+              >
+                English
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectLanguage("BOTH")}
+                className={`px-2 py-1 text-[11px] font-semibold rounded-lg transition-all cursor-pointer ${
+                  currentLanguage === "BOTH"
+                    ? "bg-brand-600 text-white shadow-xs"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+                title="दोन्ही भाषा (Both Marathi & English)"
+              >
+                Both
+              </button>
+            </div>
+
+            {/* Countdown Clock (Backend-Authoritative) */}
             <div
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-mono text-base font-bold transition-colors ${
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl font-mono text-sm sm:text-base font-bold transition-colors ${
                 isRedTime
                   ? "bg-rose-100 text-rose-800 animate-pulse border border-rose-300"
                   : isAmberTime
@@ -295,7 +357,7 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
 
             <button
               onClick={() => setShowReviewModal(true)}
-              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3 sm:px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Send className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Submit Test</span>
@@ -323,6 +385,7 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
             answers={answers}
             flagged={flagged}
             onSelectQuestion={(idx) => setCurrentIndex(idx)}
+            language={currentLanguage}
           />
         </aside>
 
@@ -380,6 +443,7 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
               onSelectOption={handleSelectOption}
               onToggleFlag={handleToggleFlag}
               totalQuestions={examData.questions.length}
+              language={currentLanguage}
             />
           )}
 

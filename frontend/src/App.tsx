@@ -9,6 +9,7 @@ import { SubmissionSuccessPage } from "./components/SubmissionSuccessPage";
 import { MonitorWall } from "./components/MonitorWall";
 import { AdminConsole } from "./components/AdminConsole";
 import { api } from "./services/api";
+import { Language, getInitialLanguage, setStoredLanguage } from "./utils/language";
 
 type AppStage = "LOGIN" | "RULES_CONSENT" | "SYSTEM_CHECK" | "EXAM" | "COMPLETED" | "STAFF";
 
@@ -20,6 +21,12 @@ export const App: React.FC = () => {
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [adminView, setAdminView] = useState<"WALL" | "CONSOLE">("WALL");
   const [loading, setLoading] = useState(true);
+  const [language, setLanguage] = useState<Language>(getInitialLanguage());
+
+  const handleLanguageChange = (lang: Language) => {
+    setLanguage(lang);
+    setStoredLanguage(lang);
+  };
 
   // Restore session from localStorage on mount
   useEffect(() => {
@@ -144,6 +151,8 @@ export const App: React.FC = () => {
           user={session}
           onLogout={session ? handleLogout : undefined}
           examTitle={examData?.assessmentTitle}
+          language={language}
+          onLanguageChange={handleLanguageChange}
         />
       )}
 
@@ -166,6 +175,8 @@ export const App: React.FC = () => {
           examData={examData}
           stream={mediaStream}
           onSubmitted={handleExamSubmitted}
+          language={language}
+          onLanguageChange={handleLanguageChange}
         />
       )}
 

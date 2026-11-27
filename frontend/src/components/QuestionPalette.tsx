@@ -1,5 +1,6 @@
 import React from "react";
 import { CandidateQuestion, SectionInfo } from "../types";
+import { Language, formatSectionName } from "../utils/language";
 
 interface QuestionPaletteProps {
   questions: CandidateQuestion[];
@@ -8,6 +9,7 @@ interface QuestionPaletteProps {
   answers: Record<string, number | null>;
   flagged: Record<string, boolean>;
   onSelectQuestion: (index: number) => void;
+  language?: Language;
 }
 
 export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
@@ -17,6 +19,7 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
   answers,
   flagged,
   onSelectQuestion,
+  language = "BOTH",
 }) => {
   const answeredCount = Object.values(answers).filter((v) => v !== null && v !== undefined).length;
   const flaggedCount = Object.values(flagged).filter(Boolean).length;
@@ -51,7 +54,7 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
           return (
             <div key={sec.id} className="space-y-2">
               <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                {sec.name}
+                {formatSectionName(sec.name, language)}
               </p>
               <div className="grid grid-cols-5 gap-1.5">
                 {secQuestions.map((q) => {

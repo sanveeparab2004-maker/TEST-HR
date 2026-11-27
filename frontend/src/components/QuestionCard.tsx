@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Check, Flag } from "lucide-react";
 import { CandidateQuestion } from "../types";
+import { Language, formatQuestionStem, formatOptionText, formatSectionName } from "../utils/language";
 
 interface QuestionCardProps {
   question: CandidateQuestion;
@@ -9,6 +10,7 @@ interface QuestionCardProps {
   onSelectOption: (optionId: number) => void;
   onToggleFlag: () => void;
   totalQuestions?: number;
+  language?: Language;
 }
 
 export const QuestionCard: React.FC<QuestionCardProps> = ({
@@ -18,6 +20,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   onSelectOption,
   onToggleFlag,
   totalQuestions,
+  language = "BOTH",
 }) => {
   // Keyboard shortcut listener: 1-4 or A-D to select, F to flag
   useEffect(() => {
@@ -55,7 +58,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-1 rounded-md bg-brand-50 text-brand-700 text-xs font-semibold tracking-wide uppercase">
-              {question.sectionName}
+              {formatSectionName(question.sectionName, language)}
             </span>
             <span className="text-xs text-slate-400 font-medium">
               {question.marks} Marks
@@ -82,7 +85,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
       {/* Question Stem */}
       <div className="text-base sm:text-lg font-medium text-slate-900 leading-relaxed whitespace-pre-line">
-        {question.stem}
+        {formatQuestionStem(question.stem, language)}
       </div>
 
       {/* Options List */}
@@ -109,7 +112,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 {opt.label}
               </div>
               <div className="flex-1 text-sm text-slate-800 pt-0.5 leading-normal whitespace-pre-line">
-                {opt.text}
+                {formatOptionText(opt.text, language)}
               </div>
               <div className="shrink-0 pt-0.5">
                 <div

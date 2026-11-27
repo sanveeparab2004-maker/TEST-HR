@@ -268,13 +268,15 @@ def test_ashtapradhan_assessment_flow(exam_test_setup):
     """Verifies login, 25-question paper delivery, candidate personal info/post profiling, and submission for the Ashtapradhan Assessment."""
     session = SessionLocal()
     try:
+        import uuid
+        cand_code = f"ASH_{uuid.uuid4().hex[:8].upper()}"
         req = DummyRequest()
         resp = DummyResponse()
 
         # Login candidate for ASSESSMENT department with profile details
         auth_resp = login(
             LoginRequest(
-                employee_code="CAND_ASHTA_01",
+                employee_code=cand_code,
                 full_name="Tanaji Malusare",
                 department="ASSESSMENT",
                 current_department="Operations",
@@ -290,7 +292,7 @@ def test_ashtapradhan_assessment_flow(exam_test_setup):
         assert auth_resp.attempt_id is not None
 
         user = SessionUser(
-            employee_code="CAND_ASHTA_01",
+            employee_code=cand_code,
             full_name="Tanaji Malusare",
             role="CANDIDATE",
             attempt_id=auth_resp.attempt_id
