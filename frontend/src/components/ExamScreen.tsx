@@ -212,7 +212,7 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
       proctorEngineRef.current.stop();
     }
     try {
-      await api.submitExam();
+      await api.submitExam(answers);
       setShowReviewModal(false);
       onSubmitted();
     } catch (err: any) {

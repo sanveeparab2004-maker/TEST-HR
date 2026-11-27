@@ -2,6 +2,7 @@ from backend.app.core.config import settings
 from backend.app.services.shuffle_service import generate_attempt_shuffle
 from backend.app.services.sheets_service import queue_or_write_sheet
 from backend.app.models.models import Restart, Question, Option, Answer
+from backend.app.api.candidate import resolve_candidate_attempt
 import base64
 import time
 from datetime import datetime, timezone, timedelta
@@ -39,9 +40,7 @@ def report_violation(
     current_user: SessionUser = Depends(require_role("CANDIDATE")),
     db: Session = Depends(get_db)
 ):
-    attempt = db.query(Attempt).filter_by(id=current_user.attempt_id).first()
-    if not attempt:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attempt record not found")
+    attempt = resolve_candidate_attempt(current_user, db, auto_create=True)
 
     if attempt.status != "IN_PROGRESS":
         raise HTTPException(
@@ -226,9 +225,7 @@ def heartbeat(
     current_user: SessionUser = Depends(require_role("CANDIDATE")),
     db: Session = Depends(get_db)
 ):
-    attempt = db.query(Attempt).filter_by(id=current_user.attempt_id).first()
-    if not attempt:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attempt record not found")
+    attempt = resolve_candidate_attempt(current_user, db, auto_create=True)
 
     now = datetime.now(timezone.utc)
     _last_heartbeats[attempt.id] = time.time()
@@ -251,7 +248,8 @@ def list_violations(
     current_user: SessionUser = Depends(require_role("CANDIDATE")),
     db: Session = Depends(get_db)
 ):
-    violations = db.query(Violation).filter_by(attempt_id=current_user.attempt_id).order_by(Violation.at.desc()).all()
+    attempt = resolve_candidate_attempt(current_user, db, auto_create=True)
+    violations = db.query(Violation).filter_by(attempt_id=attempt.id).order_by(Violation.at.desc()).all()
     return [
         {
             "id": v.id,

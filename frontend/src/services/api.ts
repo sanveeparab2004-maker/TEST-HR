@@ -194,10 +194,11 @@ export const api = {
     return res.json();
   },
 
-  async submitExam(): Promise<any> {
+  async submitExam(answers?: Record<string, number | null>): Promise<any> {
     const res = await fetch(`${API_BASE}/candidate/submit`, {
       method: "POST",
-      headers: getAuthHeaders(),
+      headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ answers: answers || {} }),
     });
     if (!res.ok) {
       const err = await res.json();

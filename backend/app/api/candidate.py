@@ -1,8 +1,9 @@
 import json
 from backend.app.core.config import settings
 from backend.app.services.sheets_service import queue_or_write_sheet
+from backend.app.services.shuffle_service import generate_attempt_shuffle
 from backend.app.models.models import Roster
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -12,12 +13,74 @@ from backend.app.schemas.auth import SessionUser
 from backend.app.schemas.candidate import (
     CandidateStatusResponse, ConsentRequest, CandidateExamResponse,
     CandidateQuestionSchema, CandidateOptionSchema, SectionInfo,
-    AnswerSaveRequest, AnswerSaveResponse, SubmitResponse
+    AnswerSaveRequest, AnswerSaveResponse, SubmitRequest, SubmitResponse
 )
 from backend.app.models.models import Attempt, Assessment, Section, Question, Option, Answer, AuditLog
 from backend.app.services.grading import grade_attempt
 
 router = APIRouter(prefix="/candidate", tags=["Candidate Exam Flow"])
+
+
+def resolve_candidate_attempt(current_user: SessionUser, db: Session, auto_create: bool = True) -> Attempt:
+    """Resiliently resolve candidate attempt by ID, by employee_code, or auto-recover if wiped during redeploy."""
+    attempt = None
+    if current_user.attempt_id:
+        attempt = db.query(Attempt).filter_by(id=current_user.attempt_id).first()
+
+    if not attempt and current_user.employee_code:
+        attempt = db.query(Attempt).filter_by(employee_code=current_user.employee_code).order_by(Attempt.id.desc()).first()
+
+    if not attempt and auto_create and current_user.employee_code:
+        roster_entry = db.query(Roster).filter_by(employee_code=current_user.employee_code).first()
+        target_dept = (roster_entry.department if roster_entry and roster_entry.department else "HR").upper()
+
+        all_assessments = db.query(Assessment).all()
+        assessment = None
+        for a in all_assessments:
+            dept_setting = (a.settings or {}).get("department", "").upper()
+            short_setting = (a.settings or {}).get("short_code", "").upper()
+            if target_dept in ("ASSESSMENT", "ASHTAPRADHAN"):
+                if dept_setting in ("ASSESSMENT", "ASHTAPRADHAN") or short_setting in ("ASSESSMENT", "ASHTAPRADHAN") or "अष्टप्रधान" in a.title or "ASHTAPRADHAN" in a.title.upper():
+                    assessment = a
+                    break
+            elif dept_setting == target_dept or short_setting == target_dept or target_dept in a.title.upper():
+                assessment = a
+                break
+
+        if not assessment:
+            assessment = db.query(Assessment).filter_by(status="OPEN").first() or db.query(Assessment).first()
+
+        if assessment:
+            now = datetime.now(timezone.utc)
+            questions = db.query(Question).filter_by(assessment_id=assessment.id).all()
+            options_by_q = {q.id: db.query(Option).filter_by(question_id=q.id).order_by(Option.label).all() for q in questions}
+            ordered_q_ids, option_order = generate_attempt_shuffle(questions, options_by_q)
+            deadline_at = now + timedelta(minutes=assessment.duration_minutes)
+
+            attempt = Attempt(
+                assessment_id=assessment.id,
+                employee_code=current_user.employee_code,
+                entered_name=current_user.full_name or (roster_entry.full_name if roster_entry else current_user.employee_code),
+                device_token_hash="RECOVERED_SESSION",
+                status="IN_PROGRESS",
+                started_at=now,
+                deadline_at=deadline_at,
+                question_order=ordered_q_ids,
+                option_order=option_order,
+                warning_count=0,
+                violation_count=0,
+                restart_count=0,
+                tab_switch_total=0,
+                face_violation_total=0,
+            )
+            db.add(attempt)
+            db.commit()
+            db.refresh(attempt)
+
+    if not attempt:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attempt record not found")
+
+    return attempt
 
 
 
@@ -203,9 +266,7 @@ def get_status(
     current_user: SessionUser = Depends(require_role("CANDIDATE")),
     db: Session = Depends(get_db)
 ):
-    attempt = db.query(Attempt).filter_by(id=current_user.attempt_id).first()
-    if not attempt:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attempt record not found")
+    attempt = resolve_candidate_attempt(current_user, db, auto_create=True)
 
     auto_submit_if_expired(attempt, db)
 
@@ -275,9 +336,7 @@ def give_consent(
     if not req.consent:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Consent is mandatory to proceed.")
 
-    attempt = db.query(Attempt).filter_by(id=current_user.attempt_id).first()
-    if not attempt:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attempt record not found")
+    attempt = resolve_candidate_attempt(current_user, db, auto_create=True)
 
     attempt.consent_at = datetime.now(timezone.utc)
     db.commit()
@@ -289,9 +348,7 @@ def get_exam(
     current_user: SessionUser = Depends(require_role("CANDIDATE")),
     db: Session = Depends(get_db)
 ):
-    attempt = db.query(Attempt).filter_by(id=current_user.attempt_id).first()
-    if not attempt:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attempt record not found")
+    attempt = resolve_candidate_attempt(current_user, db, auto_create=True)
 
     if auto_submit_if_expired(attempt, db) or attempt.status != "IN_PROGRESS":
         raise HTTPException(
@@ -402,9 +459,7 @@ def save_answer(
     current_user: SessionUser = Depends(require_role("CANDIDATE")),
     db: Session = Depends(get_db)
 ):
-    attempt = db.query(Attempt).filter_by(id=current_user.attempt_id).first()
-    if not attempt:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attempt record not found")
+    attempt = resolve_candidate_attempt(current_user, db, auto_create=True)
 
     if auto_submit_if_expired(attempt, db) or attempt.status != "IN_PROGRESS":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot save answers: assessment is closed.")
@@ -453,12 +508,36 @@ def save_answer(
 
 @router.post("/submit", response_model=SubmitResponse)
 def submit_exam(
+    req: Optional[SubmitRequest] = None,
     current_user: SessionUser = Depends(require_role("CANDIDATE")),
     db: Session = Depends(get_db)
 ):
-    attempt = db.query(Attempt).filter_by(id=current_user.attempt_id).first()
-    if not attempt:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attempt record not found")
+    attempt = resolve_candidate_attempt(current_user, db, auto_create=True)
+
+    now = datetime.now(timezone.utc)
+
+    # If candidate's client sent all answered questions in submit body, flush them to DB
+    if req and req.answers:
+        for q_id_str, opt_id in req.answers.items():
+            try:
+                q_id = int(q_id_str)
+                existing_ans = db.query(Answer).filter_by(attempt_id=attempt.id, question_id=q_id).first()
+                if existing_ans:
+                    if opt_id is not None:
+                        existing_ans.option_id = opt_id
+                        existing_ans.answered_at = now
+                else:
+                    if opt_id is not None:
+                        db.add(Answer(
+                            attempt_id=attempt.id,
+                            question_id=q_id,
+                            option_id=opt_id,
+                            flagged=False,
+                            answered_at=now
+                        ))
+            except (ValueError, TypeError):
+                continue
+        db.commit()
 
     if attempt.status != "IN_PROGRESS":
         raise HTTPException(
@@ -466,7 +545,6 @@ def submit_exam(
             detail=f"Assessment is already {attempt.status}."
         )
 
-    now = datetime.now(timezone.utc)
     attempt.status = "SUBMITTED"
     attempt.submitted_at = now
 

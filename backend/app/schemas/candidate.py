@@ -81,6 +81,10 @@ class CandidateStatusResponse(BaseModel):
     time_taken_formatted: Optional[str] = None
 
 
+class SubmitRequest(BaseModel):
+    answers: Optional[Dict[str, Optional[int]]] = None
+
+
 class SubmitResponse(BaseModel):
     status: str
     submitted_at: datetime
