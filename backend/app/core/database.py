@@ -64,6 +64,7 @@ def check_database_connection(retries: int = 3, backoff: float = 1.0) -> bool:
 
 def run_advisory_lock_migration():
     """Run migrations with advisory lock on PostgreSQL to avoid race conditions, or ensure SQLite schema."""
+    import backend.app.models.models  # Ensure all model tables are registered in Base.metadata
     Base.metadata.create_all(bind=engine)
     if is_sqlite:
         with engine.begin() as conn:
@@ -103,6 +104,26 @@ def run_advisory_lock_migration():
                         conn.execute(text("ALTER TABLE questions ADD COLUMN department VARCHAR(64) DEFAULT 'HR'"))
                     except Exception:
                         pass
+            except Exception:
+                pass
+
+            # Check violations table
+            try:
+                cursor = conn.execute(text("PRAGMA table_info(violations)"))
+                existing_v_cols = {row[1] for row in cursor.fetchall()}
+                v_patches = {
+                    "warning_number": "SMALLINT",
+                    "action": "VARCHAR(20) DEFAULT 'WARNING'",
+                    "review_status": "VARCHAR(20) DEFAULT 'PENDING'",
+                    "reviewed_by": "TEXT",
+                    "reviewed_at": "DATETIME",
+                }
+                for col, col_def in v_patches.items():
+                    if col not in existing_v_cols:
+                        try:
+                            conn.execute(text(f"ALTER TABLE violations ADD COLUMN {col} {col_def}"))
+                        except Exception:
+                            pass
             except Exception:
                 pass
         return
