@@ -64,6 +64,22 @@ def seed_ashtapradhan_endpoint(
     return {"status": "ok", "details": result}
 
 
+@router.post("/seed-claim")
+def seed_claim_endpoint(
+    current_user: SessionUser = Depends(require_role("ADMIN")),
+    db: Session = Depends(get_db)
+):
+    import traceback
+    from backend.app.core.database import run_advisory_lock_migration
+    run_advisory_lock_migration()
+    try:
+        from scripts.import_claim_80_questions import seed_claim_80
+        seed_claim_80()
+        return {"status": "ok", "message": "Claim 80 questions and roster candidates seeded successfully."}
+    except Exception as e:
+        return {"status": "error", "detail": f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"}
+
+
 @router.get("/dashboard")
 def get_admin_dashboard(
     current_user: SessionUser = Depends(require_role("ADMIN")),

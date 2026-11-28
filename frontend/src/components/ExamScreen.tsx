@@ -216,6 +216,12 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
       setShowReviewModal(false);
       onSubmitted();
     } catch (err: any) {
+      if (err.message && err.message.toLowerCase().includes("already")) {
+        // If already submitted (e.g. timeout or concurrent submit), proceed cleanly to completed screen
+        setShowReviewModal(false);
+        onSubmitted();
+        return;
+      }
       alert("Error submitting exam: " + (err.message || "Unknown error"));
     } finally {
       setSubmitting(false);

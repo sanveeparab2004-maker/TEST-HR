@@ -55,7 +55,7 @@ def load_candidates_from_excel(xlsx_path: str = "data/ashtapradhan_roster.xlsx")
     return candidates
 
 
-def seed_ashtapradhan_roster():
+def seed_ashtapradhan_roster(reset: bool = False):
     # Ensure attempts table columns exist on SQLite before opening session
     try:
         from sqlalchemy import text
@@ -84,20 +84,23 @@ def seed_ashtapradhan_roster():
         print("=" * 60)
         print(f"Total authorized candidates found: {len(candidates)}")
 
-        # 1. Clear any prior test attempts for these candidates (guarantee fresh start)
-        prior_attempts = session.query(Attempt).filter(Attempt.employee_code.in_(cand_codes)).all()
-        if prior_attempts:
-            att_ids = [a.id for a in prior_attempts]
-            print(f"[*] Clearing {len(prior_attempts)} prior attempts for fresh exam start...")
-            session.query(Answer).filter(Answer.attempt_id.in_(att_ids)).delete(synchronize_session=False)
-            session.query(Violation).filter(Violation.attempt_id.in_(att_ids)).delete(synchronize_session=False)
-            session.query(Snapshot).filter(Snapshot.attempt_id.in_(att_ids)).delete(synchronize_session=False)
-            session.query(Event).filter(Event.attempt_id.in_(att_ids)).delete(synchronize_session=False)
-            session.query(Restart).filter(Restart.attempt_id.in_(att_ids)).delete(synchronize_session=False)
-            session.query(PendingSheetWrite).filter(PendingSheetWrite.attempt_id.in_(att_ids)).delete(synchronize_session=False)
-            session.query(Attempt).filter(Attempt.id.in_(att_ids)).delete(synchronize_session=False)
-            session.commit()
-            print("  ✓ Prior attempts wiped cleanly.")
+        # 1. Clear any prior test attempts for these candidates ONLY if reset is explicitly True
+        if reset:
+            prior_attempts = session.query(Attempt).filter(Attempt.employee_code.in_(cand_codes)).all()
+            if prior_attempts:
+                att_ids = [a.id for a in prior_attempts]
+                print(f"[*] Reset requested: Clearing {len(prior_attempts)} prior attempts for fresh exam start...")
+                session.query(Answer).filter(Answer.attempt_id.in_(att_ids)).delete(synchronize_session=False)
+                session.query(Violation).filter(Violation.attempt_id.in_(att_ids)).delete(synchronize_session=False)
+                session.query(Snapshot).filter(Snapshot.attempt_id.in_(att_ids)).delete(synchronize_session=False)
+                session.query(Event).filter(Event.attempt_id.in_(att_ids)).delete(synchronize_session=False)
+                session.query(Restart).filter(Restart.attempt_id.in_(att_ids)).delete(synchronize_session=False)
+                session.query(PendingSheetWrite).filter(PendingSheetWrite.attempt_id.in_(att_ids)).delete(synchronize_session=False)
+                session.query(Attempt).filter(Attempt.id.in_(att_ids)).delete(synchronize_session=False)
+                session.commit()
+                print("  ✓ Prior attempts wiped cleanly.")
+        else:
+            print("  ℹ Preserving existing candidate attempts (reboot-safe).")
 
         # 2. Add / Update each candidate in the official Roster
         for c in candidates:

@@ -31,51 +31,64 @@ def resolve_candidate_attempt(current_user: SessionUser, db: Session, auto_creat
         attempt = db.query(Attempt).filter_by(employee_code=current_user.employee_code).order_by(Attempt.id.desc()).first()
 
     if not attempt and auto_create and current_user.employee_code:
-        roster_entry = db.query(Roster).filter_by(employee_code=current_user.employee_code).first()
-        target_dept = (roster_entry.department if roster_entry and roster_entry.department else "HR").upper()
+        try:
+            roster_entry = db.query(Roster).filter_by(employee_code=current_user.employee_code).first()
+            raw_dept = (roster_entry.department if roster_entry and roster_entry.department else "").upper()
 
-        all_assessments = db.query(Assessment).all()
-        assessment = None
-        for a in all_assessments:
-            dept_setting = (a.settings or {}).get("department", "").upper()
-            short_setting = (a.settings or {}).get("short_code", "").upper()
-            if target_dept in ("ASSESSMENT", "ASHTAPRADHAN"):
-                if dept_setting in ("ASSESSMENT", "ASHTAPRADHAN") or short_setting in ("ASSESSMENT", "ASHTAPRADHAN") or "अष्टप्रधान" in a.title or "ASHTAPRADHAN" in a.title.upper():
+            all_assessments = db.query(Assessment).all()
+            assessment = None
+            for a in all_assessments:
+                dept_setting = (a.settings or {}).get("department", "").upper()
+                short_setting = (a.settings or {}).get("short_code", "").upper()
+                title_upper = a.title.upper()
+                if "CLAIM" in raw_dept:
+                    if dept_setting == "CLAIM" or short_setting == "CLAIM" or "CLAIM" in title_upper:
+                        assessment = a
+                        break
+                elif "ASSESSMENT" in raw_dept or "ASHTAPRADHAN" in raw_dept:
+                    if dept_setting in ("ASSESSMENT", "ASHTAPRADHAN") or short_setting in ("ASSESSMENT", "ASHTAPRADHAN") or "अष्टप्रधान" in a.title or "ASHTAPRADHAN" in title_upper:
+                        assessment = a
+                        break
+                elif raw_dept and (dept_setting == raw_dept or short_setting == raw_dept or raw_dept in title_upper):
                     assessment = a
                     break
-            elif dept_setting == target_dept or short_setting == target_dept or target_dept in a.title.upper():
-                assessment = a
-                break
 
-        if not assessment:
-            assessment = db.query(Assessment).filter_by(status="OPEN").first() or db.query(Assessment).first()
+            if not assessment:
+                assessment = db.query(Assessment).filter_by(status="OPEN").first() or db.query(Assessment).first()
 
-        if assessment:
-            now = datetime.now(timezone.utc)
-            questions = db.query(Question).filter_by(assessment_id=assessment.id).all()
-            options_by_q = {q.id: db.query(Option).filter_by(question_id=q.id).order_by(Option.label).all() for q in questions}
-            ordered_q_ids, option_order = generate_attempt_shuffle(questions, options_by_q)
-            deadline_at = now + timedelta(minutes=assessment.duration_minutes)
+            if assessment:
+                now = datetime.now(timezone.utc)
+                questions = db.query(Question).filter_by(assessment_id=assessment.id).all()
+                options_by_q = {q.id: db.query(Option).filter_by(question_id=q.id).order_by(Option.label).all() for q in questions}
+                ordered_q_ids, option_order = generate_attempt_shuffle(questions, options_by_q)
+                deadline_at = now + timedelta(minutes=assessment.duration_minutes)
 
-            attempt = Attempt(
-                assessment_id=assessment.id,
-                employee_code=current_user.employee_code,
-                entered_name=current_user.full_name or (roster_entry.full_name if roster_entry else current_user.employee_code),
-                device_token_hash="RECOVERED_SESSION",
-                status="IN_PROGRESS",
-                started_at=now,
-                deadline_at=deadline_at,
-                question_order=ordered_q_ids,
-                option_order=option_order,
-                warning_count=0,
-                violation_count=0,
-                restart_count=0,
-                tab_switch_total=0,
-                face_violation_total=0,
-            )
-            db.add(attempt)
-            db.commit()
-            db.refresh(attempt)
+                attempt = Attempt(
+                    assessment_id=assessment.id,
+                    employee_code=current_user.employee_code,
+                    entered_name=current_user.full_name or (roster_entry.full_name if roster_entry else current_user.employee_code),
+                    device_token_hash="RECOVERED_SESSION",
+                    status="IN_PROGRESS",
+                    started_at=now,
+                    deadline_at=deadline_at,
+                    question_order=ordered_q_ids,
+                    option_order=option_order,
+                    warning_count=0,
+                    violation_count=0,
+                    restart_count=0,
+                    tab_switch_total=0,
+                    face_violation_total=0,
+                )
+                db.add(attempt)
+                db.commit()
+                db.refresh(attempt)
+        except Exception:
+            db.rollback()
+            attempt = db.query(Attempt).filter_by(employee_code=current_user.employee_code).order_by(Attempt.id.desc()).first()
+
+    # Fallback search if attempt still wasn't located
+    if not attempt and current_user.employee_code:
+        attempt = db.query(Attempt).filter_by(employee_code=current_user.employee_code).order_by(Attempt.id.desc()).first()
 
     if not attempt:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attempt record not found")

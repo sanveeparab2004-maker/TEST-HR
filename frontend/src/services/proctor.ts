@@ -128,7 +128,7 @@ export class ProctorEngine {
           frame: frame
         }));
       }
-    }, 1000); // 1-second interval for smooth live monitoring
+    }, 4000); // 4-second interval for lightweight & smooth live monitoring without overloading Render
   }
 
   private async handleWebRTCOffer(sdp: any) {
@@ -214,14 +214,14 @@ export class ProctorEngine {
     window.removeEventListener("keydown", this.handleKeyCombos, true);
   }
 
-  // --- Snapshot Generation (240x180 JPEG quality 0.5 for fast smooth streaming) ---
+  // --- Snapshot Generation (160x120 JPEG quality 0.35 for fast smooth lightweight streaming) ---
   private captureSnapshot(): string | undefined {
     if (!this.videoEl || !this.canvasEl) return undefined;
     try {
       const ctx = this.canvasEl.getContext("2d");
       if (!ctx) return undefined;
-      ctx.drawImage(this.videoEl, 0, 0, 240, 180);
-      return this.canvasEl.toDataURL("image/jpeg", 0.5);
+      ctx.drawImage(this.videoEl, 0, 0, 160, 120);
+      return this.canvasEl.toDataURL("image/jpeg", 0.35);
     } catch {
       return undefined;
     }
@@ -437,7 +437,7 @@ export class ProctorEngine {
     }, 1000);
   }
 
-  // --- Heartbeat Loop (5s) ---
+  // --- Heartbeat Loop (10s: keeps Render server actively warm without connection load) ---
   private startHeartbeat() {
     this.heartbeatInterval = setInterval(async () => {
       if (!this.isRunning) return;
@@ -459,6 +459,6 @@ export class ProctorEngine {
           }),
         });
       } catch {}
-    }, 5000);
+    }, 10000);
   }
 }

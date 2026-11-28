@@ -35,6 +35,12 @@ async def lifespan(app: FastAPI):
             seed_ashtapradhan_roster()
         except Exception as e:
             print("[Lifespan] Ashtapradhan roster notice:", e)
+        # Ensure Claim 80 questions and roster are seeded
+        try:
+            from scripts.import_claim_80_questions import seed_claim_80
+            seed_claim_80()
+        except Exception as e:
+            print("[Lifespan] Claim 80 questions notice:", e)
         # Initialize Google Sheet structure & formatting safely
         try:
             from backend.app.services.sheets_service import ensure_sheet_tabs_and_headers
